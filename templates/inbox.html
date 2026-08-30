@@ -1,0 +1,125 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Messages — Socialgram</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0B0F1A;--panel:#121826;--panel-2:#171F30;--line:#232C40;--cyan:#4FE3C1;--coral:#FF6B5B;--text:#E7ECF3;--muted:#8B93A7;--faint:#5A6478;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--ink);color:var(--text);font-family:'Inter',sans-serif;line-height:1.5;}
+  a{color:inherit;text-decoration:none;}
+
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;background:rgba(11,15,26,0.9);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10;}
+  .logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;display:flex;align-items:center;gap:10px;}
+  .btn-ghost{font-size:14px;font-weight:600;padding:8px 16px;border-radius:8px;border:1px solid var(--line);color:var(--muted);transition:all .15s;}
+  .btn-ghost:hover{color:var(--text);border-color:var(--faint);}
+  .btn-cyan{font-size:14px;font-weight:600;padding:8px 16px;border-radius:8px;background:var(--cyan);color:#06231D;border:none;cursor:pointer;}
+
+  .page{max-width:700px;margin:40px auto;padding:0 32px;}
+  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+  .header h1{font-family:'Space Grotesk',sans-serif;font-size:26px;}
+
+  .conv-list{display:flex;flex-direction:column;gap:12px;}
+  .conv-card{display:flex;align-items:center;gap:16px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 20px;transition:border .15s;}
+  .conv-card:hover{border-color:var(--cyan);}
+  .avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--coral));object-fit:cover;flex-shrink:0;}
+  .meta{flex:1;min-width:0;}
+  .meta h3{font-family:'Space Grotesk',sans-serif;font-size:16px;margin-bottom:2px;}
+  .meta p{font-size:14px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .badge{background:var(--coral);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;font-family:'JetBrains Mono',monospace;}
+
+  /* Modal */
+  .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:100;align-items:center;justify-content:center;}
+  .modal.active{display:flex;}
+  .modal-content{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;width:100%;max-width:400px;}
+  .modal h2{margin-bottom:16px;font-family:'Space Grotesk',sans-serif;}
+  .form-group{margin-bottom:16px;}
+  .form-group label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
+  .form-group input[type="text"]{width:100%;background:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;color:var(--text);font-family:inherit;}
+  .form-group select{width:100%;background:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;color:var(--text);font-family:inherit;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px;}
+  @media (max-width:480px){
+    .nav { padding: 12px 16px; }
+    .page { padding: 0 16px; margin: 24px auto; }
+    .header h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="logo">Socialgram</div>
+  <a href="{% url 'home' %}" class="btn-ghost">Back to Feed</a>
+</nav>
+
+<div class="page">
+  <div class="header">
+    <h1>Messages</h1>
+    <button class="btn-cyan" onclick="document.getElementById('groupModal').classList.add('active')">+ New Group</button>
+  </div>
+  
+  <div class="conv-list">
+    {% for conv in conversations %}
+      <a href="{% if conv.is_group %}{% url 'group_conversation' conv.group.id %}{% else %}{% url 'conversation' conv.partner.id %}{% endif %}" class="conv-card">
+        {% if conv.is_group %}
+          <div class="avatar" style="display:flex;align-items:center;justify-content:center;background:var(--panel-2);color:var(--cyan);font-weight:700;font-size:24px;">G</div>
+        {% else %}
+          {% if conv.partner.profile.profileimg %}
+            <img class="avatar" src="{{ conv.partner.profile.profileimg.url }}" alt="">
+          {% else %}
+            <div class="avatar"></div>
+          {% endif %}
+        {% endif %}
+        
+        <div class="meta">
+          <h3>{% if conv.is_group %}{{ conv.group.name }} <span style="font-size:11px;color:var(--muted);font-weight:normal;background:var(--line);padding:2px 6px;border-radius:4px;margin-left:6px;">Group</span>{% else %}{{ conv.partner.username }}{% endif %}</h3>
+          <p>
+            {% if conv.last_msg %}
+              {% if conv.last_msg.sender == request.user %}You: {% endif %}{{ conv.last_msg.text }}
+            {% else %}
+              No messages yet
+            {% endif %}
+          </p>
+        </div>
+        {% if conv.unread > 0 %}
+          <div class="badge">{{ conv.unread }}</div>
+        {% endif %}
+      </a>
+    {% empty %}
+      <p style="color:var(--faint);text-align:center;margin-top:40px;">Your inbox is empty.</p>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Create Group Modal -->
+<div class="modal" id="groupModal">
+  <div class="modal-content">
+    <h2>Create Group</h2>
+    <form action="{% url 'create_group' %}" method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label>Group Name</label>
+        <input type="text" name="name" required placeholder="e.g. Weekend Vibes">
+      </div>
+      <div class="form-group">
+        <label>Select Members (Hold Ctrl/Cmd to select multiple)</label>
+        <select name="members" multiple required style="height:150px;">
+          {% for u in all_users %}
+            <option value="{{ u.id }}">{{ u.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" onclick="document.getElementById('groupModal').classList.remove('active')">Cancel</button>
+        <button type="submit" class="btn-cyan">Create</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+</body>
+</html>
+

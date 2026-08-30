@@ -1,0 +1,64 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notifications — Socialgram</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0B0F1A;--panel:#121826;--panel-2:#171F30;--line:#232C40;--cyan:#4FE3C1;--coral:#FF6B5B;--text:#E7ECF3;--muted:#8B93A7;--faint:#5A6478;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--ink);color:var(--text);font-family:'Inter',sans-serif;line-height:1.5;}
+  a{color:inherit;text-decoration:none;}
+  .nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:16px 32px;background:rgba(11,15,26,0.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+  .logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;}
+  .nav-auth{display:flex;align-items:center;gap:10px;}
+  .btn{font-size:14px;font-weight:600;padding:9px 18px;border-radius:8px;}
+  .btn-ghost{background:none;color:var(--muted);border:1px solid var(--line);}
+  .wrap{max-width:640px;margin:32px auto;padding:0 24px;}
+  h1{font-family:'Space Grotesk',sans-serif;font-size:22px;margin-bottom:20px;}
+  .notif-item{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--line);}
+  .notif-item.unread{background:rgba(79,227,193,0.04);border-radius:8px;padding:14px 10px;}
+  .avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--coral));object-fit:cover;flex-shrink:0;}
+  .notif-text{flex:1;}
+  .notif-text strong{color:var(--cyan);}
+  .notif-time{font-size:11px;color:var(--faint);font-family:'JetBrains Mono',monospace;margin-top:3px;}
+  .empty{text-align:center;padding:60px 0;color:var(--faint);font-size:14px;}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a href="/" class="logo">Socialgram</a>
+  <div class="nav-auth">
+    <span style="color:var(--muted);font-size:14px;font-family:'JetBrains Mono',monospace;">@{{ request.user.username }}</span>
+    <a href="{% url 'logout' %}" class="btn btn-ghost">Log out</a>
+  </div>
+</nav>
+<div class="wrap">
+  <h1>Notifications</h1>
+  {% for n in notifs %}
+    <div class="notif-item {% if not n.is_read %}unread{% endif %}">
+      {% if n.sender.profile.profileimg %}
+        <img class="avatar" src="{{ n.sender.profile.profileimg.url }}" alt="">
+      {% else %}
+        <div class="avatar"></div>
+      {% endif %}
+      <div class="notif-text">
+        <div>
+          <strong>{{ n.sender.username }}</strong>
+          {% if n.notif_type == "like" %}liked your post.
+          {% elif n.notif_type == "comment" %}commented on your post.
+          {% elif n.notif_type == "follow" %}started following you.
+          {% elif n.notif_type == "share" %}shared your post.
+          {% endif %}
+        </div>
+        <div class="notif-time">{{ n.created_at|timesince }} ago</div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="empty">No notifications yet.</div>
+  {% endfor %}
+</div>
+</body>
+</html>

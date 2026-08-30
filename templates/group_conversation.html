@@ -1,0 +1,268 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ group.name }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0B0F1A;--panel:#121826;--panel-2:#171F30;--line:#232C40;--cyan:#4FE3C1;--coral:#FF6B5B;--text:#E7ECF3;--muted:#8B93A7;--faint:#5A6478;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--ink);color:var(--text);font-family:'Inter',sans-serif;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+  a{color:inherit;text-decoration:none;}
+
+  /* NAV */
+  .nav{display:flex;align-items:center;gap:12px;padding:12px 20px;background:rgba(11,15,26,0.97);border-bottom:1px solid var(--line);flex-shrink:0;z-index:10;}
+  .back{color:var(--muted);font-size:13px;display:flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);}
+  .back:hover{color:var(--text);}
+  .avatar{width:38px;height:38px;border-radius:10px;background:var(--panel-2);color:var(--cyan);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:18px;}
+  .partner-info h2{font-family:'Space Grotesk',sans-serif;font-size:15px;display:flex;align-items:center;gap:6px;}
+  .partner-info span{font-size:12px;color:var(--faint);font-family:'JetBrains Mono',monospace;}
+  .badge{font-size:10px;background:var(--line);padding:2px 6px;border-radius:4px;color:var(--muted);font-weight:normal;}
+  .call-btns{margin-left:auto;display:flex;gap:8px;}
+  .call-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:9px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;}
+  .call-btn.voice{background:var(--panel-2);border:1px solid var(--line);color:var(--cyan);}
+  .call-btn.voice:hover{background:rgba(79,227,193,0.1);}
+  .call-btn.video{background:var(--cyan);color:#06231D;}
+  .call-btn.video:hover{box-shadow:0 0 0 3px rgba(79,227,193,0.2);}
+
+  /* MESSAGES */
+  .messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:8px;}
+  .bubble-wrap{display:flex;flex-direction:column;max-width:70%;}
+  .bubble-wrap.mine{align-self:flex-end;align-items:flex-end;}
+  .bubble-wrap.theirs{align-self:flex-start;align-items:flex-start;}
+  .sender-name{font-size:11px;color:var(--muted);margin-bottom:2px;padding:0 4px;}
+  .bubble{padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.5;word-break:break-word;}
+  .bubble.mine{background:var(--cyan);color:#06231D;border-bottom-right-radius:4px;}
+  .bubble.theirs{background:var(--panel);border:1px solid var(--line);border-bottom-left-radius:4px;}
+  .btime{font-size:10px;color:var(--faint);margin-top:3px;font-family:'JetBrains Mono',monospace;padding:0 4px;}
+
+  /* COMPOSER */
+  .composer{display:flex;gap:10px;padding:12px 20px;border-top:1px solid var(--line);background:var(--ink);flex-shrink:0;}
+  .composer input{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 16px;color:var(--text);font-size:14px;outline:none;}
+  .send-btn{background:var(--cyan);color:#06231D;border:none;border-radius:10px;padding:11px 20px;font-weight:700;}
+
+  /* GROUP CALL OVERLAY (Mesh Topology Grid) */
+  .call-overlay{display:none;position:fixed;inset:0;background:#000;z-index:200;flex-direction:column;}
+  .call-overlay.active{display:flex;}
+  .video-grid{flex:1;display:flex;flex-wrap:wrap;gap:4px;padding:4px;align-content:center;justify-content:center;}
+  .video-container{position:relative;background:#111;flex:1 1 45%;min-width:300px;max-height:50vh;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:12px;}
+  .video-container video{width:100%;height:100%;object-fit:cover;}
+  .video-container .peer-name{position:absolute;bottom:10px;left:10px;background:rgba(0,0,0,0.6);padding:4px 8px;border-radius:6px;font-size:12px;}
+  
+  .call-controls{padding:24px;display:flex;justify-content:center;gap:16px;background:linear-gradient(transparent,rgba(0,0,0,0.8));}
+  .ctrl-btn{width:56px;height:56px;border-radius:50%;border:none;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .ctrl-btn.mute{background:var(--panel);color:var(--text);}
+  .ctrl-btn.cam{background:var(--panel);color:var(--text);}
+  .ctrl-btn.hangup{background:var(--coral);color:#fff;}
+  @media (max-width:480px){
+    .nav { padding: 12px 8px; gap: 8px; }
+    .call-btn { padding: 8px; }
+    .call-btn span { display: none; }
+    .messages { padding: 16px 8px; }
+    .compose-bar { padding: 12px 8px; }
+    .bubble-wrap { max-width: 85%; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="{% url 'inbox' %}" class="back">Back</a>
+  <div class="avatar">G</div>
+  <div class="partner-info">
+    <h2>{{ group.name }} <span class="badge">{{ members.count }} members</span></h2>
+    <span id="ws-status">connecting…</span>
+  </div>
+  <div class="call-btns">
+    <button class="call-btn voice" onclick="startCall('audio')">Join Voice</button>
+    <button class="call-btn video" onclick="startCall('video')">Join Video</button>
+  </div>
+</nav>
+
+<div class="messages" id="messages">
+  {% for msg in messages %}
+    <div class="bubble-wrap {% if msg.sender == request.user %}mine{% else %}theirs{% endif %}">
+      {% if msg.sender != request.user %}
+        <span class="sender-name">{{ msg.sender.username }}</span>
+      {% endif %}
+      <div class="bubble {% if msg.sender == request.user %}mine{% else %}theirs{% endif %}">{{ msg.text }}</div>
+      <span class="btime">{{ msg.created_at|time:"g:i A" }}</span>
+    </div>
+  {% empty %}
+    <p id="empty-hint" style="text-align:center;color:var(--faint);margin-top:40px;font-size:14px;">Group created! Say hi 👋</p>
+  {% endfor %}
+</div>
+
+<div class="composer">
+  <input type="text" id="msg-input" placeholder="Message group…" autocomplete="off" autofocus>
+  <button class="send-btn" onclick="sendMessage()">Send</button>
+</div>
+
+<!-- CALL OVERLAY -->
+<div class="call-overlay" id="callOverlay">
+  <div class="video-grid" id="videoGrid">
+    <div class="video-container" id="container-local">
+      <video id="localVideo" autoplay playsinline muted></video>
+      <div class="peer-name">You</div>
+    </div>
+  </div>
+  <div class="call-controls">
+    <button class="ctrl-btn mute" id="muteBtn" onclick="toggleMute()">🎤</button>
+    <button class="ctrl-btn cam" id="camBtn" onclick="toggleCam()">📷</button>
+    <button class="ctrl-btn hangup" onclick="hangUp()">📵</button>
+  </div>
+</div>
+
+<script>
+const ME_ID = {{ request.user.id }};
+const GRP_ID = "{{ group.id }}";
+
+// ── Chat WS ──
+const chatWS = new WebSocket(`ws://${location.host}/ws/group_chat/${GRP_ID}/`);
+const msgBox = document.getElementById('messages');
+chatWS.onopen = () => document.getElementById('ws-status').textContent = 'online';
+chatWS.onmessage = (e) => {
+  const data = JSON.parse(e.data);
+  if (data.type === 'chat') appendMessage(data.text, data.sender_id === ME_ID, data.sender, data.time);
+};
+function sendMessage() {
+  const inp = document.getElementById('msg-input');
+  const text = inp.value.trim();
+  if (text) { chatWS.send(JSON.stringify({ text })); inp.value = ''; }
+}
+document.getElementById('msg-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendMessage();
+});
+
+function appendMessage(text, isMine, sender, time) {
+  document.getElementById('empty-hint')?.remove();
+  const wrap = document.createElement('div');
+  wrap.className = `bubble-wrap ${isMine ? 'mine' : 'theirs'}`;
+  let html = '';
+  if (!isMine) html += `<span class="sender-name">${sender}</span>`;
+  html += `<div class="bubble ${isMine ? 'mine' : 'theirs'}">${text}</div><span class="btime">${time}</span>`;
+  wrap.innerHTML = html;
+  msgBox.appendChild(wrap);
+  msgBox.scrollTop = msgBox.scrollHeight;
+}
+msgBox.scrollTop = msgBox.scrollHeight;
+
+
+// ── Group WebRTC (Full Mesh) ──
+let callWS, localStream;
+let callType = 'audio';
+let peers = {}; // map of user_id -> RTCPeerConnection
+
+const ICE_SERVERS = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+async function startCall(type) {
+  callType = type;
+  document.getElementById('callOverlay').classList.add('active');
+  document.getElementById('camBtn').style.display = type === 'video' ? 'flex' : 'none';
+  
+  const constraints = { audio: true, video: type === 'video' };
+  localStream = await navigator.mediaDevices.getUserMedia(constraints);
+  document.getElementById('localVideo').srcObject = localStream;
+  if(type === 'audio') document.getElementById('localVideo').style.display = 'none';
+
+  callWS = new WebSocket(`ws://${location.host}/ws/group_call/${GRP_ID}/`);
+  callWS.onopen = () => {
+    // Tell everyone we joined
+    callWS.send(JSON.stringify({ type: 'peer-joined' }));
+  };
+  callWS.onmessage = async (e) => {
+    const sig = JSON.parse(e.data);
+    const peerId = sig.sender_id;
+    
+    if (sig.type === 'peer-joined') {
+      // Create connection and send offer
+      const pc = createPeer(peerId);
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      callWS.send(JSON.stringify({ type: 'offer', target_id: peerId, sdp: offer }));
+    }
+    else if (sig.type === 'offer') {
+      const pc = createPeer(peerId);
+      await pc.setRemoteDescription(sig.sdp);
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      callWS.send(JSON.stringify({ type: 'answer', target_id: peerId, sdp: answer }));
+    }
+    else if (sig.type === 'answer') {
+      await peers[peerId].setRemoteDescription(sig.sdp);
+    }
+    else if (sig.type === 'ice-candidate') {
+      peers[peerId]?.addIceCandidate(sig.candidate).catch(e=>{});
+    }
+    else if (sig.type === 'peer-left') {
+      removePeer(sig.peer_id);
+    }
+  };
+}
+
+function createPeer(peerId) {
+  if (peers[peerId]) return peers[peerId];
+  const pc = new RTCPeerConnection(ICE_SERVERS);
+  peers[peerId] = pc;
+  
+  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+  
+  pc.onicecandidate = e => {
+    if (e.candidate) callWS.send(JSON.stringify({ type: 'ice-candidate', target_id: peerId, candidate: e.candidate }));
+  };
+  
+  pc.ontrack = e => {
+    let container = document.getElementById('container-' + peerId);
+    if (!container) {
+      container = document.createElement('div');
+      container.className = 'video-container';
+      container.id = 'container-' + peerId;
+      container.innerHTML = `<video id="video-${peerId}" autoplay playsinline></video><div class="peer-name">User ${peerId}</div>`;
+      document.getElementById('videoGrid').appendChild(container);
+    }
+    const v = document.getElementById('video-' + peerId);
+    v.srcObject = e.streams[0];
+    if(callType === 'audio') v.style.display = 'none';
+  };
+  
+  pc.onconnectionstatechange = () => {
+    if (['disconnected','failed','closed'].includes(pc.connectionState)) removePeer(peerId);
+  };
+  
+  return pc;
+}
+
+function removePeer(peerId) {
+  if (peers[peerId]) { peers[peerId].close(); delete peers[peerId]; }
+  document.getElementById('container-' + peerId)?.remove();
+}
+
+function hangUp() {
+  document.getElementById('callOverlay').classList.remove('active');
+  if(localStream) localStream.getTracks().forEach(t=>t.stop());
+  Object.values(peers).forEach(pc => pc.close());
+  peers = {};
+  if(callWS) { callWS.close(); callWS = null; }
+  document.querySelectorAll('.video-container:not(#container-local)').forEach(e=>e.remove());
+}
+
+let micMuted = false, camOff = false;
+function toggleMute() {
+  if(!localStream) return;
+  micMuted = !micMuted;
+  localStream.getAudioTracks().forEach(t => t.enabled = !micMuted);
+  document.getElementById('muteBtn').textContent = micMuted ? '🔇' : '🎤';
+}
+function toggleCam() {
+  if(!localStream) return;
+  camOff = !camOff;
+  localStream.getVideoTracks().forEach(t => t.enabled = !camOff);
+  document.getElementById('camBtn').textContent = camOff ? '📵' : '📷';
+}
+</script>
+</body>
+</html>
+
+

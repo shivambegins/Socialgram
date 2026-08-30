@@ -1,0 +1,458 @@
+{% load static %}{% load custom_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Socialgram — Home</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0B0F1A; --panel:#121826; --panel-2:#171F30; --line:#232C40;
+    --cyan:#4FE3C1; --cyan-dim:#2C6E63; --coral:#FF6B5B;
+    --text:#E7ECF3; --muted:#8B93A7; --faint:#5A6478;
+    --display:'Space Grotesk',sans-serif; --body:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--ink); color:var(--text); font-family:var(--body); line-height:1.5;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none;}
+
+  .nav{
+    position:sticky; top:0; z-index:50; display:flex; align-items:center; justify-content:space-between;
+    padding:16px 32px; background:rgba(11,15,26,0.9); backdrop-filter:blur(10px); border-bottom:1px solid var(--line);
+  }
+  .logo{display:flex; align-items:center; gap:10px; font-family:var(--display); font-weight:700; font-size:20px;}
+  .logo-mark circle{fill:none; stroke:var(--cyan); stroke-width:1.6;}
+  .logo-mark line{stroke:var(--cyan); stroke-width:1.4; opacity:0.7;}
+  .nav-search{
+    flex:1; max-width:420px; margin:0 32px; display:flex; align-items:center; gap:10px;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:9px 14px;
+  }
+  .nav-search input{background:none; border:none; outline:none; color:var(--text); font-size:14px; width:100%;}
+  .nav-search input::placeholder{color:var(--faint);}
+  .nav-search svg{width:16px; height:16px; stroke:var(--faint); flex-shrink:0;}
+  .nav-auth{display:flex; align-items:center; gap:10px;}
+  .btn{font-size:14px; font-weight:600; padding:9px 18px; border-radius:8px; transition:box-shadow .15s, background .15s;}
+  .btn-ghost{background:none; color:var(--muted); border:1px solid var(--line);}
+  .btn-ghost:hover{color:var(--text); border-color:var(--faint);}
+  .btn-solid{background:var(--cyan); color:#06231D;}
+  .btn-solid:hover{box-shadow:0 0 0 3px rgba(79,227,193,0.18);}
+  .btn:disabled{opacity:0.6; cursor:default;}
+
+  .app{
+    display:grid; grid-template-columns:220px 1fr 280px; gap:24px;
+    max-width:1180px; margin:24px auto 100px; padding:0 32px;
+  }
+  @media (max-width:980px){
+    .app { grid-template-columns:1fr; padding:0 16px; margin: 16px auto 80px; }
+    .side-left { order:2; } 
+    .side-right { order:3; }
+    .nav { padding: 12px 16px; }
+    .nav-search { display: none; }
+    .nav-auth > span { display: none; }
+  }
+  @media (max-width:480px){
+    .panel { padding: 16px; }
+    .composer-row { flex-wrap: wrap; }
+    .post-image { border-radius: 6px; }
+  }
+
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px;}
+  .side-left .panel{position:sticky; top:88px;}
+  .profile-block{display:flex; flex-direction:column; align-items:center; text-align:center; padding-bottom:16px; border-bottom:1px solid var(--line); margin-bottom:14px;}
+  .avatar{width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg,var(--cyan),var(--coral)); margin-bottom:10px; object-fit:cover;}
+  .profile-block h3{font-family:var(--display); font-size:15px;}
+  .profile-block span{color:var(--faint); font-size:13px; font-family:var(--mono);}
+  .nav-list{display:flex; flex-direction:column; gap:2px;}
+  .nav-list a{display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; font-size:14px; color:var(--muted);}
+  .nav-list a:hover{background:var(--panel-2); color:var(--text);}
+  .nav-list a.active{background:rgba(79,227,193,0.1); color:var(--cyan);}
+  .nav-list svg{width:16px; height:16px;}
+
+  .composer{display:flex; flex-direction:column; gap:12px;}
+  .composer-row{display:flex; gap:12px; align-items:center;}
+  .composer input[type=text]{
+    flex:1; background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
+    padding:12px 14px; color:var(--text); font-size:14px; outline:none;
+  }
+  .composer input[type=text]:focus{border-color:var(--cyan-dim);}
+  .composer input[type=file]{font-size:13px; color:var(--muted);}
+  .composer .btn-solid{padding:11px 20px; flex-shrink:0;}
+
+  .feed{display:flex; flex-direction:column; gap:16px; margin-top:16px;}
+  .empty-state{text-align:center; padding:40px 20px; color:var(--faint); font-size:14px;}
+  .post-head{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+  .post-avatar{width:38px; height:38px; border-radius:50%; flex-shrink:0; background:linear-gradient(135deg,#4FE3C1,#FF6B5B); object-fit:cover;}
+  .post-meta h4{font-size:14px; font-weight:600;}
+  .post-meta span{font-size:12px; color:var(--faint); font-family:var(--mono);}
+  .post-body{font-size:14.5px; color:var(--text); line-height:1.6; margin-bottom:14px;}
+  .post-image{width:100%; border-radius:10px; margin-bottom:14px; display:block;}
+  .post-actions{display:flex; gap:6px; border-top:1px solid var(--line); padding-top:10px;}
+  .post-action{
+    display:flex; align-items:center; gap:6px; background:none; color:var(--muted);
+    font-size:13px; padding:7px 12px; border-radius:8px; transition:background .15s, color .15s;
+  }
+  .post-action svg{width:15px; height:15px;}
+  .post-action:hover{background:var(--panel-2); color:var(--text);}
+  .post-action.liked{color:var(--coral);}
+  .post-action.liked svg{fill:var(--coral); stroke:var(--coral);}
+  .liked-by{font-size:12px; color:var(--faint); margin-top:8px; font-family:var(--mono);}
+  .liked-by span{text-decoration:underline dotted var(--faint); cursor:default;}
+
+  .side-right .panel + .panel{margin-top:16px;}
+  .panel h3.title{font-family:var(--display); font-size:14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;}
+  .panel h3.title span{font-family:var(--mono); font-size:11px; color:var(--faint); font-weight:400;}
+  .suggestion{display:flex; align-items:center; gap:10px; padding:8px 0;}
+  .suggestion .post-avatar{width:36px; height:36px;}
+  .suggestion-meta{flex:1; min-width:0;}
+  .suggestion-meta h4{font-size:13.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .suggestion-meta span{font-size:12px; color:var(--faint);}
+  .connect-btn{
+    font-size:12px; font-weight:600; padding:6px 12px; border-radius:7px;
+    background:none; border:1px solid var(--cyan-dim); color:var(--cyan);
+    display:flex; align-items:center; gap:5px; white-space:nowrap;
+  }
+  .connect-btn:hover{background:rgba(79,227,193,0.1);}
+  .connect-btn.connected{background:var(--cyan); color:#06231D; border-color:var(--cyan);}
+  .see-all{display:block; text-align:center; margin-top:10px; font-size:12.5px; color:var(--cyan); font-family:var(--mono);}
+  footer{border-top:1px solid var(--line); padding:28px 32px; text-align:center; color:var(--faint); font-size:12.5px; font-family:var(--mono);}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="logo">
+    <svg class="logo-mark" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="6" r="3"/><circle cx="5" cy="20" r="3"/><circle cx="23" cy="20" r="3"/><line x1="14" y1="9" x2="6.5" y2="17.5"/><line x1="14" y1="9" x2="21.5" y2="17.5"/><line x1="8" y1="20" x2="20" y2="20"/></svg>
+    Socialgram
+  </div>
+  <form class="nav-search" action="{% url 'find_users' %}" method="get">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" name="q" placeholder="Find people by username">
+  </form>
+  <div class="nav-auth">
+    <span style="color:var(--muted); font-size:14px; font-family:var(--mono);">@{{ request.user.username }}</span>
+    <!-- Notifications bell -->
+    <a href="{% url 'notifications' %}" style="position:relative; display:flex; align-items:center; padding:6px; border-radius:8px; color:var(--muted);" title="Notifications">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      {% if unread_notif_count %}
+        <span style="position:absolute;top:2px;right:2px;background:var(--coral);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;font-family:var(--mono);line-height:1.4;">{{ unread_notif_count }}</span>
+      {% endif %}
+    </a>
+    <!-- DM inbox -->
+    <a href="{% url 'inbox' %}" style="display:flex;align-items:center;padding:6px;border-radius:8px;color:var(--muted);" title="Messages">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    </a>
+    <a href="{% url 'logout' %}" class="btn btn-ghost">Log out</a>
+  </div>
+</nav>
+
+<div class="app">
+  <div class="side-left">
+    <div class="panel">
+      <div class="profile-block">
+        <a href="{% url 'profile' request.user.username %}" style="display:flex; flex-direction:column; align-items:center; text-decoration:none; color:inherit;">
+        {% if request.user.profile.profileimg %}
+          <img class="avatar" src="{{ request.user.profile.profileimg.url }}" alt="">
+        {% else %}
+          <div class="avatar"></div>
+        {% endif %}
+        <h3>{{ request.user.get_full_name|default:request.user.username }}</h3>
+        <span>@{{ request.user.username }}</span>
+        </a>
+      </div>
+      <nav class="nav-list">
+        <a class="active" href="{% url 'home' %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>Home
+        </a>
+        <a href="{% url 'find_users' %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Find people
+        </a>
+        <a href="{% url 'inbox' %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Messages
+        </a>
+      </nav>
+    </div>
+
+    <div class="panel" style="margin-top:16px;">
+      <h3 style="font-family:var(--display); font-size:14px; margin-bottom:12px; color:var(--text);">Recent Messages</h3>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        {% for conv in conversations|slice:":5" %}
+          <a href="{% url 'conversation' conv.partner.id %}" style="display:flex; align-items:center; gap:10px; text-decoration:none;">
+            {% if conv.partner.profile.profileimg %}
+              <img src="{{ conv.partner.profile.profileimg.url }}" alt="" style="width:36px; height:36px; border-radius:50%; object-fit:cover; flex-shrink:0;">
+            {% else %}
+              <div style="width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,var(--cyan),var(--coral)); flex-shrink:0;"></div>
+            {% endif %}
+            <div style="flex:1; min-width:0;">
+              <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                <span style="font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ conv.partner.username }}</span>
+                {% if conv.unread > 0 %}
+                  <span style="background:var(--coral); color:#fff; font-size:10px; font-weight:700; border-radius:8px; padding:1px 5px; font-family:var(--mono);">{{ conv.unread }}</span>
+                {% endif %}
+              </div>
+              <p style="font-size:12px; color:var(--faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;">
+                {% if conv.last_msg.sender == request.user %}You: {% endif %}{{ conv.last_msg.text }}
+              </p>
+            </div>
+          </a>
+        {% empty %}
+          <p style="color:var(--faint); font-size:13px;">No messages yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="feed-col">
+    <form class="panel composer" action="{% url 'upload' %}" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="composer-row">
+        {% if request.user.profile.profileimg %}
+          <img class="post-avatar" src="{{ request.user.profile.profileimg.url }}" alt="">
+        {% else %}
+          <div class="post-avatar"></div>
+        {% endif %}
+        <input type="text" name="captions" placeholder="What are you building today?" required>
+        <label for="image-upload" style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; color:var(--muted); cursor:pointer; transition:color 0.15s; flex-shrink:0;" title="Attach Photo" onmouseover="this.style.color='var(--cyan)'" onmouseout="this.style.color='var(--muted)'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+          </svg>
+        </label>
+        <input type="file" name="image-upload" id="image-upload" accept="image/*" style="display:none;" onchange="document.getElementById('file-name').textContent = this.files[0] ? this.files[0].name : ''">
+        <button type="submit" class="btn btn-solid">Post</button>
+      </div>
+      <div id="file-name" style="font-size:12px; color:var(--cyan); padding-left:52px; height:auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></div>
+    </form>
+
+    <div class="feed">
+      {% for post in posts %}
+        <div class="panel">
+          <div class="post-head">
+            <a href="{% url 'profile' post.user.username %}">
+            {% if post.user.profile.profileimg %}
+              <img class="post-avatar" src="{{ post.user.profile.profileimg.url }}" alt="">
+            {% else %}
+              <div class="post-avatar"></div>
+            {% endif %}
+            </a>
+            <div class="post-meta">
+              <h4><a href="{% url 'profile' post.user.username %}" style="color:inherit; text-decoration:none;">{{ post.user.username }}</a></h4>
+              <span>{{ post.created_AT|timesince }} ago</span>
+            </div>
+            {% if post.user == request.user %}
+              <div style="margin-left:auto; display:flex; gap:8px;">
+                <button type="button" onclick="toggleEdit('{{ post.id }}')" style="background:none;border:1px solid var(--line);border-radius:7px;color:var(--cyan);font-size:12px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:var(--mono);">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Edit
+                </button>
+                <form method="post" action="{% url 'delete_post' post.id %}" onsubmit="return confirm('Delete this post?')">
+                {% csrf_token %}
+                <button type="submit"
+                  style="background:none;border:1px solid var(--line);border-radius:7px;
+                         color:var(--coral);font-size:12px;padding:5px 10px;cursor:pointer;
+                         display:flex;align-items:center;gap:4px;font-family:var(--mono);">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                       style="width:13px;height:13px;">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6m4-6v6"/><path d="M9 6V4h6v2"/>
+                  </svg>
+                  Delete
+                </button>
+              </form></div>{% endif %}
+          </div>
+
+          <div id="post-text-{{ post.id }}">{% if post.caption %}<div class="post-body">{{ post.caption|urlize_tags }}</div>{% endif %}</div>
+            <form id="post-edit-{{ post.id }}" method="post" action="{% url 'edit_post' post.id %}" style="display:none; margin-bottom:14px; gap:8px; flex-direction:column;">
+              {% csrf_token %}
+              <input type="text" name="caption" value="{{ post.caption }}" required style="background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:12px 14px; color:var(--text); font-size:14px; outline:none; width:100%; box-sizing:border-box;">
+              <div style="display:flex; gap:8px; justify-content:flex-end;">
+                <button type="button" class="btn btn-ghost" onclick="toggleEdit('{{ post.id }}')">Cancel</button>
+                <button type="submit" class="btn btn-solid">Save</button>
+              </div>
+            </form>
+          {% if post.image %}<img class="post-image" src="{{ post.image.url }}" alt="">{% endif %}
+
+          <div class="post-actions">
+            <a href="{% url 'like_post' post.id %}" class="post-action {% if post.id in liked_ids %}liked{% endif %}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6c-1.8-1.8-4.7-1.8-6.5 0L12 6.9l-2.3-2.3c-1.8-1.8-4.7-1.8-6.5 0-1.8 1.8-1.8 4.7 0 6.5L12 20l8.8-8.9c1.8-1.8 1.8-4.7 0-6.5z"/></svg>
+              {{ post.no_likes }}
+            </a>
+            <button class="post-action" onclick="toggleComments('{{ post.id }}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+              {{ post.comments.count }}
+            </button>
+            <a href="{% url 'share_post' post.id %}" class="post-action {% if post.id in shared_ids %}liked{% endif %}" title="Share">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+              {{ post.shares.count }}
+            </a>
+          </div>
+
+          {% if post.like_set.all %}
+            <div class="liked-by">
+              Liked by
+              {% for like in post.like_set.all %}
+                <span title="{{ like.created_at|date:'M j, Y, g:i A' }}">{{ like.user.username }}{% if not forloop.last %}, {% endif %}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <!-- Comments -->
+          <div id="comments-{{ post.id }}" style="margin-top:12px; display:none;">
+            {% for comment in post.comments.all %}
+              <div style="display:flex; align-items:flex-start; gap:8px; padding:7px 0; border-top:1px solid var(--line);">
+                <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--coral));flex-shrink:0;"></div>
+                <div style="flex:1;">
+                  <span style="font-size:13px;font-weight:600;color:var(--cyan);">{{ comment.user.username }}</span>
+                  <span style="font-size:13px;color:var(--text);margin-left:6px;">{{ comment.text }}</span>
+                  <div style="font-size:11px;color:var(--faint);font-family:var(--mono);margin-top:2px;">{{ comment.created_at|timesince }} ago
+                    {% if comment.user == request.user %}
+                      <form method="post" action="{% url 'delete_comment' comment.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" style="background:none;border:none;color:var(--coral);font-size:11px;cursor:pointer;font-family:var(--mono);margin-left:6px;">delete</button>
+                      </form>{% endif %}
+                    </div>
+                  </div>
+                </div>
+            {% endfor %}
+            <form method="post" action="{% url 'add_comment' post.id %}" style="display:flex;gap:8px;margin-top:8px;">
+              {% csrf_token %}
+              <input type="text" name="text" placeholder="Write a comment…" required
+                style="flex:1;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none;">
+              <button type="submit" style="background:var(--cyan);color:#06231D;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">Post</button>
+            </form>
+          </div>
+        </div>
+      {% empty %}
+        <div class="panel empty-state">No posts yet — be the first to share something.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="side-right">
+    <div class="panel">
+      <h3 class="title">People to connect with</h3>
+      {% for person, mutual_count in suggestions %}
+        <div class="suggestion">
+          <a href="{% url 'profile' person.username %}">
+          {% if person.profile.profileimg %}
+            <img class="post-avatar" src="{{ person.profile.profileimg.url }}" alt="">
+          {% else %}
+            <div class="post-avatar"></div>
+          {% endif %}
+          </a>
+          <div class="suggestion-meta">
+            <h4><a href="{% url 'profile' person.username %}" style="color:inherit; text-decoration:none;">{{ person.username }}</a></h4>
+            <span>{{ person.profile.location|default:"Socialgram member" }}</span>
+            {% if mutual_count > 0 %}
+              <span style="font-size:11px; color:var(--cyan); font-family:var(--mono);">{{ mutual_count }} mutual</span>
+            {% endif %}
+          </div>
+          {% if person.id in connected_ids %}
+            <button class="connect-btn connected" disabled>Connected</button>
+          {% else %}
+            <a href="{% url 'connect' person.id %}" class="connect-btn">Connect</a>
+          {% endif %}
+          <a href="{% url 'conversation' person.id %}" title="Message"
+             style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;
+                    border-radius:7px;border:1px solid var(--line);color:var(--muted);flex-shrink:0;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </a>
+        </div>
+      {% empty %}
+        <p style="color:var(--faint); font-size:13px;">No suggestions right now.</p>
+      {% endfor %}
+      <a href="{% url 'find_users' %}" class="see-all">See everyone →</a>
+    </div>
+    <div class="panel" id="news-panel">
+      <h3 class="title">
+        Trending in tech <span>live</span>
+        <button onclick="toggleNews()" id="news-toggle-btn" title="Minimise news"
+          style="background:none; border:1px solid var(--line); border-radius:6px; color:var(--muted);
+                 font-size:11px; font-family:var(--mono); padding:3px 8px; cursor:pointer; display:flex; align-items:center; gap:4px;">
+          <svg id="news-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               style="width:12px; height:12px; transition:transform .25s;">
+            <polyline points="18 15 12 9 6 15"/>
+          </svg>
+          <span id="news-toggle-label">Hide</span>
+        </button>
+      </h3>
+      <div id="news-body">
+        {% for item in news %}
+          <a href="{{ item.url }}" target="_blank" rel="noopener"
+             style="display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-bottom:1px solid var(--line); text-decoration:none;">
+            {% if item.urlToImage %}
+              <img src="{{ item.urlToImage }}" alt=""
+                   style="width:64px; height:48px; object-fit:cover; border-radius:6px; flex-shrink:0; background:var(--line);"
+                   onerror="this.style.display='none'">
+            {% endif %}
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:13px; color:var(--text); margin-bottom:3px; line-height:1.4;">{{ item.title }}</div>
+              <span style="font-size:11px; color:var(--faint); font-family:var(--mono);">
+                {{ item.source.name|default:item.author|default:"Unknown source" }}
+              </span>
+            </div>
+          </a>
+        {% empty %}
+          <p style="color:var(--faint); font-size:13px;">No news available right now.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const body = document.getElementById('news-body');
+        const icon = document.getElementById('news-toggle-icon');
+        const label = document.getElementById('news-toggle-label');
+        const collapsed = localStorage.getItem('news-collapsed') === '1';
+        if (collapsed) {
+          body.style.display = 'none';
+          icon.style.transform = 'rotate(180deg)';
+          label.textContent = 'Show';
+        }
+      })();
+
+      function toggleNews() {
+        const body = document.getElementById('news-body');
+        const icon = document.getElementById('news-toggle-icon');
+        const label = document.getElementById('news-toggle-label');
+        const isHidden = body.style.display === 'none';
+        body.style.display = isHidden ? 'block' : 'none';
+        icon.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+        label.textContent = isHidden ? 'Hide' : 'Show';
+        localStorage.setItem('news-collapsed', isHidden ? '0' : '1');
+      }
+    </script>
+  </div>
+</div>
+
+<footer>SOCIALGRAM — built on real connections, not follower counts</footer>
+
+<script>
+  function toggleComments(postId) {
+    const el = document.getElementById('comments-' + postId);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+</script>
+<script>
+  function toggleEdit(postId) {
+    const textEl = document.getElementById("post-text-" + postId);
+    const formEl = document.getElementById("post-edit-" + postId);
+    if (formEl.style.display === "none") {
+      formEl.style.display = "flex";
+      textEl.style.display = "none";
+    } else {
+      formEl.style.display = "none";
+      textEl.style.display = "block";
+    }
+  }
+</script>
+</body>
+</html>
+
+
+
+
+
+
+

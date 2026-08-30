@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign Up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Grand+Hotel&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1a1a2e;
+    --muted:#8b8b9e;
+    --line:#e8e8ee;
+    --paper:#ffffff;
+    --glow-a:#f9ce34;
+    --glow-b:#ee2a7b;
+    --glow-c:#6228d7;
+    --focus:#6228d7;
+    --danger:#ed4956;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'Poppins', sans-serif;
+    color:var(--ink);
+    background:#0e0e14;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
+  }
+
+  /* ---------- ambient motion background ---------- */
+  .blob{
+    position:fixed;
+    border-radius:50%;
+    filter:blur(70px);
+    opacity:0.55;
+    z-index:0;
+    will-change:transform;
+  }
+  .blob-a{
+    width:520px;height:520px;
+    background:radial-gradient(circle at 30% 30%, var(--glow-a), transparent 70%);
+    top:-140px; left:-140px;
+    animation:float-a 16s ease-in-out infinite;
+  }
+  .blob-b{
+    width:480px;height:480px;
+    background:radial-gradient(circle at 60% 40%, var(--glow-b), transparent 70%);
+    bottom:-160px; right:-120px;
+    animation:float-b 20s ease-in-out infinite;
+  }
+  .blob-c{
+    width:420px;height:420px;
+    background:radial-gradient(circle at 50% 50%, var(--glow-c), transparent 70%);
+    top:40%; left:60%;
+    animation:float-c 24s ease-in-out infinite;
+  }
+
+  @keyframes float-a{
+    0%,100%{transform:translate(0,0) scale(1);}
+    50%{transform:translate(60px,80px) scale(1.15);}
+  }
+  @keyframes float-b{
+    0%,100%{transform:translate(0,0) scale(1);}
+    50%{transform:translate(-70px,-50px) scale(1.1);}
+  }
+  @keyframes float-c{
+    0%,100%{transform:translate(0,0) scale(1);}
+    50%{transform:translate(-40px,60px) scale(0.9);}
+  }
+
+  /* ---------- card ---------- */
+  .stage{
+    position:relative;
+    z-index:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:14px;
+    padding:20px;
+    width:100%;
+    max-width:400px;
+  }
+
+  .card{
+    width:100%;
+    background:var(--paper);
+    border-radius:18px;
+    padding:38px 32px 26px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.55);
+    opacity:0;
+    transform:translateY(28px) scale(0.97);
+    animation:rise 0.7s cubic-bezier(.2,.9,.25,1) 0.15s forwards;
+  }
+
+  @keyframes rise{
+    to{opacity:1; transform:translateY(0) scale(1);}
+  }
+
+  .logo{
+    font-family:'Grand Hotel', cursive;
+    font-size:2.9rem;
+    text-align:center;
+    margin:6px 0 22px;
+    background:linear-gradient(90deg, var(--glow-c), var(--glow-b) 55%, var(--glow-a));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    letter-spacing:0.5px;
+  }
+
+  /* one-box-at-a-time focus effect */
+  .fields{
+    transition:filter 0.35s ease;
+  }
+  .fields.active-typing .field{
+    filter:blur(3px);
+    opacity:0.45;
+    transform:scale(0.98);
+  }
+  .fields.active-typing .field.is-focused{
+    filter:none;
+    opacity:1;
+    transform:scale(1.02);
+    z-index:2;
+  }
+
+  .field{
+    position:relative;
+    margin-bottom:14px;
+    opacity:0;
+    transform:translateY(10px);
+    animation:field-in 0.5s ease forwards;
+    transition:filter 0.35s ease, opacity 0.35s ease, transform 0.35s ease;
+  }
+  .field:nth-of-type(1){animation-delay:0.35s;}
+  .field:nth-of-type(2){animation-delay:0.42s;}
+  .field:nth-of-type(3){animation-delay:0.49s;}
+  .field:nth-of-type(4){animation-delay:0.56s;}
+
+  @keyframes field-in{
+    to{opacity:1; transform:translateY(0);}
+  }
+
+  .field input{
+    width:100%;
+    padding:13px 12px 13px 14px;
+    font-size:0.92rem;
+    font-family:inherit;
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:#fafafa;
+    outline:none;
+    transition:border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  }
+  .field input::placeholder{color:var(--muted);}
+  .field input:focus{
+    border-color:var(--focus);
+    background:#fff;
+    box-shadow:0 0 0 4px rgba(98,40,215,0.09);
+  }
+  .field input:valid:not(:placeholder-shown){
+    border-color:#3fbf7f;
+  }
+
+  .hint{
+    font-size:0.7rem;
+    color:var(--muted);
+    text-align:center;
+    line-height:1.5;
+    margin:14px 0 18px;
+  }
+
+  .submit{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:8px;
+    font-family:inherit;
+    font-weight:600;
+    font-size:0.95rem;
+    color:#fff;
+    background:linear-gradient(90deg, var(--glow-c), var(--glow-b));
+    background-size:200% 100%;
+    background-position:0% 0%;
+    cursor:pointer;
+    position:relative;
+    overflow:hidden;
+    transition:background-position 0.5s ease, transform 0.15s ease, box-shadow 0.3s ease;
+    opacity:0;
+    animation:field-in 0.5s ease 0.62s forwards;
+  }
+  .submit:hover{
+    background-position:100% 0%;
+    box-shadow:0 10px 24px -10px rgba(238,42,123,0.6);
+  }
+  .submit:active{transform:scale(0.98);}
+  .submit:disabled{opacity:0.55; cursor:not-allowed;}
+
+  .submit .ripple{
+    position:absolute;
+    border-radius:50%;
+    background:rgba(255,255,255,0.5);
+    transform:scale(0);
+    animation:ripple 0.6s ease-out forwards;
+    pointer-events:none;
+  }
+  @keyframes ripple{
+    to{transform:scale(3); opacity:0;}
+  }
+
+  .divider{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin:20px 0 16px;
+    opacity:0;
+    animation:field-in 0.5s ease 0.7s forwards;
+  }
+  .divider span{flex:1; height:1px; background:var(--line);}
+  .divider p{margin:0; font-size:0.72rem; font-weight:600; color:var(--muted);}
+
+  .alt{
+    width:100%;
+    text-align:center;
+    font-size:0.85rem;
+    font-weight:600;
+    color:var(--focus);
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:8px;
+    opacity:0;
+    animation:field-in 0.5s ease 0.78s forwards;
+  }
+
+  .footer-card{
+    width:100%;
+    background:var(--paper);
+    border-radius:18px;
+    padding:18px;
+    text-align:center;
+    font-size:0.9rem;
+    box-shadow:0 20px 40px -25px rgba(0,0,0,0.5);
+    opacity:0;
+    transform:translateY(20px);
+    animation:rise 0.7s cubic-bezier(.2,.9,.25,1) 0.85s forwards;
+  }
+  .footer-card a{color:var(--focus); text-decoration:none; font-weight:600;}
+
+  /* success burst on submit */
+  .success-tick{
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(14,14,20,0.75);
+    z-index:5;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.3s ease;
+  }
+  .success-tick.show{opacity:1; pointer-events:auto;}
+  .tick-circle{
+    width:92px; height:92px;
+    border-radius:50%;
+    background:linear-gradient(135deg, var(--glow-c), var(--glow-b));
+    display:flex; align-items:center; justify-content:center;
+    transform:scale(0);
+    animation:pop 0.5s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+  .success-tick.show .tick-circle{animation-play-state:running;}
+  @keyframes pop{ to{ transform:scale(1);} }
+  .tick-circle svg{width:44px; height:44px;}
+  .tick-path{
+    stroke-dasharray:40;
+    stroke-dashoffset:40;
+    animation:draw 0.4s ease 0.3s forwards;
+  }
+  @keyframes draw{ to{stroke-dashoffset:0;} }
+
+  /* ---------- floating emojis ---------- */
+  .emoji-layer{
+    position:fixed;
+    inset:0;
+    z-index:1;
+    pointer-events:none;
+    overflow:hidden;
+  }
+  .emoji{
+    position:absolute;
+    bottom:-60px;
+    font-size:1.6rem;
+    opacity:0;
+    animation:drift-up linear infinite;
+  }
+  @keyframes drift-up{
+    0%{ transform:translateY(0) translateX(0) rotate(0deg); opacity:0; }
+    10%{ opacity:0.85; }
+    90%{ opacity:0.6; }
+    100%{ transform:translateY(-115vh) translateX(var(--drift, 30px)) rotate(25deg); opacity:0; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="blob blob-a"></div>
+  <div class="blob blob-b"></div>
+  <div class="blob blob-c"></div>
+  <div class="emoji-layer" id="emojiLayer"></div>
+
+  <div class="stage">
+    <form class="card" id="signupForm" method="POST" action="">
+      {% csrf_token %}
+      <div class="logo">Connectly</div>
+
+      {% if invalid %}
+      <p style="color:#ed4956; font-size:0.8rem; text-align:center; margin:-8px 0 16px;">{{ invalid }}</p>
+      {% endif %}
+
+      <div class="fields" id="fieldsWrap">
+        <div class="field">
+          <input type="text" name="fnm" placeholder="Username" required minlength="3">
+        </div>
+        <div class="field">
+          <input type="email" name="emailid" placeholder="Email" required>
+        </div>
+        <div class="field">
+          <input type="password" name="pwd" placeholder="Password" required minlength="6">
+        </div>
+      </div>
+
+      <p class="hint">
+        People who use our service may have uploaded your contact information.
+        By signing up, you agree to our Terms, Privacy Policy and Cookies Policy.
+      </p>
+
+      <button type="submit" class="submit" id="submitBtn">Sign up</button>
+
+      <div class="divider"><span></span><p>OR</p><span></span></div>
+
+      <button type="button" class="alt">Log in with an existing account</button>
+    </form>
+
+    <div class="footer-card">
+      Have an account? <a href="#">Log in</a>
+    </div>
+  </div>
+
+  <div class="success-tick" id="successOverlay">
+    <div class="tick-circle">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path class="tick-path" d="M4 12.5L9.5 18L20 6" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+  </div>
+
+<script>
+  const form = document.getElementById('signupForm');
+  const btn = document.getElementById('submitBtn');
+  const overlay = document.getElementById('successOverlay');
+
+  // one-box-at-a-time focus blur
+  const fieldsWrap = document.getElementById('fieldsWrap');
+  const fields = fieldsWrap.querySelectorAll('.field');
+
+  fields.forEach(field => {
+    const input = field.querySelector('input');
+    input.addEventListener('focus', () => {
+      fieldsWrap.classList.add('active-typing');
+      fields.forEach(f => f.classList.remove('is-focused'));
+      field.classList.add('is-focused');
+    });
+    input.addEventListener('blur', () => {
+      setTimeout(() => {
+        const stillFocused = fieldsWrap.querySelector('input:focus');
+        if(!stillFocused){
+          fieldsWrap.classList.remove('active-typing');
+          fields.forEach(f => f.classList.remove('is-focused'));
+        }
+      }, 60);
+    });
+  });
+
+  // floating emoji ambience
+  const emojiSet = ['👋','😊','❤️','👍','🔥','✨','💬','😄'];
+  const layer = document.getElementById('emojiLayer');
+
+  function spawnEmoji(){
+    const el = document.createElement('span');
+    el.className = 'emoji';
+    el.textContent = emojiSet[Math.floor(Math.random() * emojiSet.length)];
+    const startX = Math.random() * 100;
+    const drift = (Math.random() * 80 - 40) + 'px';
+    const duration = 9 + Math.random() * 6;
+    el.style.left = startX + 'vw';
+    el.style.setProperty('--drift', drift);
+    el.style.animationDuration = duration + 's';
+    el.style.fontSize = (1.1 + Math.random() * 1.2) + 'rem';
+    layer.appendChild(el);
+    setTimeout(() => el.remove(), duration * 1000 + 500);
+  }
+
+  for(let i = 0; i < 6; i++){
+    setTimeout(spawnEmoji, i * 900);
+  }
+  setInterval(spawnEmoji, 1400);
+
+  btn.addEventListener('click', function(e){
+    const rect = btn.getBoundingClientRect();
+    const ripple = document.createElement('span');
+    ripple.className = 'ripple';
+    const size = Math.max(rect.width, rect.height);
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = (e.clientX - rect.left - size/2) + 'px';
+    ripple.style.top = (e.clientY - rect.top - size/2) + 'px';
+    btn.appendChild(ripple);
+    setTimeout(()=> ripple.remove(), 650);
+  });
+
+  form.addEventListener('submit', function(e){
+    if(!form.checkValidity()){
+      e.preventDefault();
+      form.reportValidity();
+      return;
+    }
+    // Let the browser submit the form normally to Django.
+    // Just show a quick loading state on the button while the request goes through.
+    btn.disabled = true;
+    btn.textContent = 'Creating account...';
+  });
+</script>
+
+</body>
+</html>
