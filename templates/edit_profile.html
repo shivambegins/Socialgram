@@ -1,0 +1,288 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit Profile | Socialgram</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #030A09;
+      --panel: #06231D;
+      --panel-2: #0F1A18;
+      --cyan: #4FE3C1;
+      --text: #E0F2EF;
+      --muted: #8AB4A8;
+      --line: #163C31;
+    }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      margin: 0; padding: 24px;
+    }
+    .container { max-width: 600px; margin: 0 auto; }
+    .card {
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: 16px; padding: 24px; margin-bottom: 24px;
+    }
+    h2 { color: var(--cyan); margin-top: 0; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 14px; }
+    input[type=text], textarea, input[type=file] {
+      width: 100%; padding: 12px;
+      background: var(--panel-2); border: 1px solid var(--line);
+      border-radius: 8px; color: var(--text); box-sizing: border-box;
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    .btn {
+      background: var(--cyan); color: #06231D;
+      border: none; padding: 12px 24px; font-weight: 600;
+      border-radius: 8px; cursor: pointer; transition: 0.2s;
+    }
+    .btn:hover { box-shadow: 0 0 12px rgba(79, 227, 193, 0.4); }
+    .btn-secondary { background: transparent; border: 1px solid var(--line); color: var(--text); }
+    
+    .moment-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px;
+    }
+    .moment-item {
+      aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: var(--panel-2);
+    }
+    .moment-item img, .moment-item video {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+  
+    .file-hidden { width: 0.1px; height: 0.1px; opacity: 0; overflow: hidden; position: absolute; z-index: -1; }
+    .file-label {
+      display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+      background: var(--panel-2); border: 1px dashed var(--muted); border-radius: 8px;
+      color: var(--text); cursor: pointer; transition: all 0.2s; font-size: 14px;
+    }
+    .file-label:hover { border-color: var(--cyan); background: rgba(79, 227, 193, 0.05); }
+    .file-label svg { width: 18px; height: 18px; stroke: var(--cyan); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <h2>✏️ Edit Profile</h2>
+      <a href="{% url 'profile' user.username %}" class="btn btn-secondary" style="text-decoration:none;">🔙 Back to Profile</a>
+    </div>
+
+    <div class="card">
+      <form action="" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="update_profile" value="1">
+        
+        <div class="form-group" style="margin-bottom:32px; text-align:center;">
+          <label style="display:block; margin-bottom:12px; color:var(--muted); font-size:14px;">🖼️ Profile Picture (Click to Edit)</label>
+          <div style="position:relative; display:inline-block;">
+            {% if profile.profileimg %}
+              <img id="profile-preview" src="{{ profile.profileimg.url }}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:2px solid var(--cyan); cursor:pointer; transition:0.2s;" onclick="toggleMenu('profile-menu')" alt="Current Avatar" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+            {% else %}
+              <div id="profile-preview-div" style="width:100px; height:100px; border-radius:50%; background:var(--panel-2); border:2px solid var(--line); cursor:pointer;" onclick="toggleMenu('profile-menu')"></div>
+            {% endif %}
+            
+            <input type="file" name="profileimg" id="profileimg" accept="image/*" class="file-hidden" onchange="previewImage(this, 'profile-preview')">
+            <input type="hidden" name="remove_profileimg" id="remove_profileimg" value="false">
+            
+            <div id="profile-menu" style="display:none; position:absolute; top:110px; left:50%; transform:translateX(-50%); background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:4px; z-index:10; width:160px; box-shadow:0 4px 12px rgba(0,0,0,0.5); text-align:left;">
+              <div style="padding:10px; cursor:pointer; font-size:13px; color:var(--text);" onclick="document.getElementById('profileimg').click(); toggleMenu('profile-menu');" onmouseover="this.style.background='var(--panel)'" onmouseout="this.style.background='transparent'">📷 Upload New</div>
+              <div style="padding:10px; cursor:pointer; font-size:13px; color:var(--coral);" onclick="removeImage('profile-preview', 'remove_profileimg', '/media/blank_profile-pictures.png'); toggleMenu('profile-menu');" onmouseover="this.style.background='var(--panel)'" onmouseout="this.style.background='transparent'">🗑️ Remove Photo</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group" style="margin-bottom:32px; text-align:center;">
+          <label style="display:block; margin-bottom:12px; color:var(--muted); font-size:14px;">🌄 Cover Photo (Click to Edit)</label>
+          <div style="position:relative; display:inline-block; width:100%;">
+            {% if profile.coverimg %}
+              <img id="cover-preview" src="{{ profile.coverimg.url }}" style="width:100%; height:120px; border-radius:12px; object-fit:cover; border:2px solid var(--line); cursor:pointer; transition:0.2s;" onclick="toggleMenu('cover-menu')" alt="Current Cover" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+            {% else %}
+              <div id="cover-preview-div" style="width:100%; height:120px; border-radius:12px; background:var(--panel-2); border:2px solid var(--line); cursor:pointer;" onclick="toggleMenu('cover-menu')"></div>
+            {% endif %}
+            
+            <input type="file" name="coverimg" id="coverimg" accept="image/*" class="file-hidden" onchange="previewImage(this, 'cover-preview')">
+            <input type="hidden" name="remove_coverimg" id="remove_coverimg" value="false">
+            
+            <div id="cover-menu" style="display:none; position:absolute; top:130px; left:50%; transform:translateX(-50%); background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:4px; z-index:10; width:160px; box-shadow:0 4px 12px rgba(0,0,0,0.5); text-align:left;">
+              <div style="padding:10px; cursor:pointer; font-size:13px; color:var(--text);" onclick="document.getElementById('coverimg').click(); toggleMenu('cover-menu');" onmouseover="this.style.background='var(--panel)'" onmouseout="this.style.background='transparent'">📷 Upload New</div>
+              <div style="padding:10px; cursor:pointer; font-size:13px; color:var(--coral);" onclick="removeImage('cover-preview', 'remove_coverimg', '/media/blank-cover.png'); toggleMenu('cover-menu');" onmouseover="this.style.background='var(--panel)'" onmouseout="this.style.background='transparent'">🗑️ Remove Photo</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Bio</label>
+          <textarea name="bio">{{ profile.bio }}</textarea>
+        </div>
+        
+        <button type="submit" class="btn">💾 Save Changes</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-bottom:24px;">Memorable Moments</h2>
+      
+      <!-- Add New Moment Form -->
+      <form action="" method="POST" enctype="multipart/form-data" style="margin-bottom: 32px; display:flex; gap:16px; align-items:flex-start;">
+        {% csrf_token %}
+        <input type="hidden" name="add_moment" value="1">
+        
+        <div style="flex-shrink:0; text-align:center;">
+          <div style="position:relative; display:inline-block;">
+            <!-- Placeholder Preview Box -->
+            <div id="moment-preview-div" style="width:100px; height:120px; border-radius:12px; background:var(--panel-2); border:2px dashed var(--cyan); display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; transition:0.2s;" onclick="document.getElementById('moment_file').click();" onmouseover="this.style.background='rgba(79,227,193,0.1)'" onmouseout="this.style.background='var(--panel-2)'">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" style="width:24px; height:24px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </div>
+            
+            <input type="file" name="moment_file" id="moment_file" accept="image/*,video/*" required class="file-hidden" onchange="previewMoment(this, 'moment-preview-div')">
+          </div>
+        </div>
+        
+        <div style="flex:1; display:flex; flex-direction:column; gap:12px;">
+          <input type="text" name="caption" placeholder="Caption your memory (optional)..." style="font-size:14px;">
+          <div>
+            <button type="submit" class="btn btn-secondary" style="font-size:13px; padding:8px 16px;">Add Moment</button>
+          </div>
+        </div>
+      </form>
+
+      <!-- Existing Moments Grid -->
+      <div class="moment-grid">
+        {% for moment in moments %}
+          <div class="moment-item" style="position:relative; cursor:pointer; border:1px solid var(--line);" onclick="toggleMenu('moment-menu-{{ moment.id }}')" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+            {% if '.mp4' in moment.file.url or '.mov' in moment.file.url %}
+              <video src="{{ moment.file.url }}" muted autoplay loop style="width:100%; height:100%; object-fit:cover;"></video>
+            {% else %}
+              <img src="{{ moment.file.url }}" alt="{{ moment.caption }}" style="width:100%; height:100%; object-fit:cover;">
+            {% endif %}
+            
+            <!-- Menu for existing moment -->
+            <div id="moment-menu-{{ moment.id }}" class="moment-menu" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:4px; z-index:10; width:120px; box-shadow:0 4px 12px rgba(0,0,0,0.5); text-align:center;">
+              <form action="" method="POST" style="margin:0;">
+                {% csrf_token %}
+                <input type="hidden" name="delete_moment_id" value="{{ moment.id }}">
+                <button type="submit" style="background:transparent; border:none; width:100%; padding:8px; cursor:pointer; font-size:13px; color:var(--coral);" onmouseover="this.style.background='var(--panel)'" onmouseout="this.style.background='transparent'">🗑️ Delete</button>
+              </form>
+            </div>
+          </div>
+        {% empty %}
+          <p style="color:var(--faint); font-size:14px; grid-column:1/-1;">No moments added yet. Upload your first one above!</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+
+<script>
+  function updateFileName(input) {
+    let label = input.nextElementSibling.querySelector('.file-text');
+    if (input.files && input.files.length > 0) {
+      label.textContent = input.files[0].name;
+    } else {
+      label.textContent = "Select Media...";
+    }
+  }
+
+  function toggleMenu(id) {
+    const menu = document.getElementById(id);
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function previewImage(input, previewId) {
+    if (input.files && input.files[0]) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        let img = document.getElementById(previewId);
+        if (img) {
+            img.src = e.target.result;
+        } else {
+            // In case it was a div initially
+            let div = document.getElementById(previewId + '-div');
+            if(div) {
+                let newImg = document.createElement('img');
+                newImg.id = previewId;
+                newImg.src = e.target.result;
+                newImg.style = div.style.cssText;
+                newImg.onclick = div.onclick;
+                newImg.onmouseover = function() { this.style.opacity = '0.8'; };
+                newImg.onmouseout = function() { this.style.opacity = '1'; };
+                div.parentNode.replaceChild(newImg, div);
+            }
+        }
+      }
+      reader.readAsDataURL(input.files[0]);
+      
+      if(previewId === 'profile-preview') document.getElementById('remove_profileimg').value = 'false';
+      if(previewId === 'cover-preview') document.getElementById('remove_coverimg').value = 'false';
+    }
+  }
+
+  function removeImage(previewId, hiddenInputId, defaultSrc) {
+    let img = document.getElementById(previewId);
+    if (img) {
+      img.src = defaultSrc;
+    }
+    document.getElementById(hiddenInputId).value = 'true';
+    if(previewId === 'profile-preview') document.getElementById('profileimg').value = '';
+    if(previewId === 'cover-preview') document.getElementById('coverimg').value = '';
+  }
+
+  function previewMoment(input, previewDivId) {
+    if (input.files && input.files[0]) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        let div = document.getElementById(previewDivId);
+        if (div) {
+          // Clear current content
+          div.innerHTML = '';
+          div.style.border = 'none';
+          
+          let fileType = input.files[0].type;
+          if (fileType.startsWith('video/')) {
+            let vid = document.createElement('video');
+            vid.src = e.target.result;
+            vid.style.width = '100%';
+            vid.style.height = '100%';
+            vid.style.objectFit = 'cover';
+            vid.muted = true;
+            vid.autoplay = true;
+            vid.loop = true;
+            div.appendChild(vid);
+          } else {
+            let img = document.createElement('img');
+            img.src = e.target.result;
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
+            div.appendChild(img);
+          }
+        }
+      }
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  document.addEventListener('click', function(event) {
+    const pMenu = document.getElementById('profile-menu');
+    const cMenu = document.getElementById('cover-menu');
+    if (pMenu && cMenu) {
+      if (!event.target.closest('#profile-preview') && !event.target.closest('#profile-preview-div') && !event.target.closest('#profile-menu')) {
+        pMenu.style.display = 'none';
+      }
+      if (!event.target.closest('#cover-preview') && !event.target.closest('#cover-preview-div') && !event.target.closest('#cover-menu')) {
+        cMenu.style.display = 'none';
+      }
+    }
+    
+    // Hide moment menus if clicking outside
+    if (!event.target.closest('.moment-item')) {
+        document.querySelectorAll('.moment-menu').forEach(menu => {
+            menu.style.display = 'none';
+        });
+    }
+  });
+</script>
+</body>
+</html>

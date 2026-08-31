@@ -31,6 +31,7 @@ urlpatterns = [
     path('messages/group/create/', views.create_group, name='create_group'),
     path('messages/group/<uuid:group_id>/', views.group_conversation, name='group_conversation'),
     path('post/edit/<uuid:post_id>/', views.edit_post, name='edit_post'),
+    path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('profile/<str:username>/', views.profile, name='profile'),
     path('messages/merge-call/', views.merge_call, name='merge_call'),
     path('settings/', views.user_settings, name='user_settings'),

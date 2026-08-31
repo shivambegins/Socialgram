@@ -134,31 +134,77 @@
 
 <div class="app">
   <div class="feed-col">
-    <div class="panel" style="display:flex; flex-direction:column; align-items:center; text-align:center;">
-      {% if profile_user.profile.profileimg %}
-        <img src="{{ profile_user.profile.profileimg.url }}" alt="" style="width:100px; height:100px; border-radius:50%; object-fit:cover; margin-bottom:16px;">
-      {% else %}
-        <div style="width:100px; height:100px; border-radius:50%; background:linear-gradient(135deg,var(--cyan),var(--coral)); margin-bottom:16px;"></div>
-      {% endif %}
-      <h2 style="margin:0; font-family:var(--display); color:var(--text);">{{ profile_user.get_full_name|default:profile_user.username }}</h2>
-      <span style="color:var(--faint); font-family:var(--mono); margin-top:4px;">@{{ profile_user.username }}</span>
-      <p style="color:var(--text); font-size:14px; margin-top:12px; line-height:1.5; max-width:400px;">{{ profile_user.profile.bio|default:"No bio yet." }}</p>
-      
-      <div style="display:flex; gap:12px; margin-top:20px;">
-        {% if profile_user == request.user %}
-          <!-- Let user edit their own profile later -->
-        {% else %}
-          {% if profile_user.id in connected_ids %}
-            <button class="btn btn-solid" disabled style="background:none; border:1px solid var(--cyan); color:var(--cyan);">Connected</button>
-          {% else %}
-            <a href="{% url 'connect' profile_user.id %}" class="btn btn-solid">Connect</a>
-          {% endif %}
-          <a href="{% url 'conversation' profile_user.id %}" class="btn btn-ghost">Message</a>
+    <div class="panel" style="padding:0; overflow:hidden;">
+      <!-- Cover Image -->
+      <div style="height:200px; width:100%; background:var(--panel-2); position:relative;">
+        {% if profile_user.profile.coverimg %}
+          <img src="{{ profile_user.profile.coverimg.url }}" style="width:100%; height:100%; object-fit:cover;" alt="Cover">
         {% endif %}
       </div>
+      
+      <!-- Profile Info -->
+      <div style="display:flex; flex-direction:column; align-items:center; text-align:center; padding:20px; margin-top:-70px; position:relative;">
+        {% if profile_user.profile.profileimg %}
+          <img src="{{ profile_user.profile.profileimg.url }}" alt="" style="width:120px; height:120px; border-radius:50%; border:4px solid var(--panel); object-fit:cover; margin-bottom:12px;">
+        {% else %}
+          <div style="width:120px; height:120px; border-radius:50%; border:4px solid var(--panel); background:linear-gradient(135deg,var(--cyan),var(--coral)); margin-bottom:12px;"></div>
+        {% endif %}
+        
+        <h2 style="margin:0; font-family:var(--display); color:var(--text);">{{ profile_user.get_full_name|default:profile_user.username }}</h2>
+        <span style="color:var(--faint); font-family:var(--mono); margin-top:4px;">@{{ profile_user.username }}</span>
+        
+        <!-- View Count -->
+        <div style="margin-top:8px; display:flex; gap:16px; font-size:14px; color:var(--muted);">
+          <span><strong style="color:var(--text);">{{ profile_user.profile.view_count }}</strong> Views</span>
+        </div>
+        
+        <p style="color:var(--text); font-size:14px; margin-top:12px; line-height:1.5; max-width:400px;">{{ profile_user.profile.bio|default:"No bio yet." }}</p>
+        
+        <div style="display:flex; gap:12px; margin-top:20px;">
+          {% if profile_user == request.user %}
+            <a href="{% url 'edit_profile' %}" class="btn btn-solid">✏️ Edit Profile</a>
+            <a href="{% url 'user_settings' %}" class="btn btn-ghost">⚙️ Settings</a>
+          {% else %}
+            {% if profile_user.id in connected_ids %}
+              <button class="btn btn-solid" disabled style="background:none; border:1px solid var(--cyan); color:var(--cyan);">Connected</button>
+            {% else %}
+              <a href="{% url 'connect' profile_user.id %}" class="btn btn-solid">🤝 Connect</a>
+            {% endif %}
+            <a href="{% url 'conversation' profile_user.id %}" class="btn btn-ghost">💬 Message</a>
+            
+            <form action="{% url 'block_user' profile_user.username %}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to block {{ profile_user.username }}?');">
+              {% csrf_token %}
+              <button type="submit" class="btn" style="background:transparent; color:#FF4A4A; border:1px solid #FF4A4A;">🚫 Block</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
     </div>
+    
+    <!-- Memorable Moments Section -->
+    {% if moments %}
+    <div class="panel" style="margin-top:24px;">
+      <h3 style="font-family:var(--display); font-size:18px; margin-bottom:16px; color:var(--cyan);">🌟 Memorable Moments</h3>
+      <div style="display:flex; gap:12px; overflow-x:auto; padding-bottom:8px;">
+        {% for moment in moments %}
+          <div style="min-width:120px; width:120px; height:160px; border-radius:12px; overflow:hidden; background:var(--panel-2); position:relative; flex-shrink:0;">
+            {% if '.mp4' in moment.file.url or '.mov' in moment.file.url %}
+              <video src="{{ moment.file.url }}" style="width:100%; height:100%; object-fit:cover;" muted autoplay loop></video>
+            {% else %}
+              <img src="{{ moment.file.url }}" style="width:100%; height:100%; object-fit:cover;" title="{{ moment.caption }}">
+            {% endif %}
+            {% if moment.caption %}
+              <div style="position:absolute; bottom:0; width:100%; background:rgba(0,0,0,0.6); padding:6px; font-size:11px; text-align:center;">
+                {{ moment.caption }}
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
 
-    <div class="feed">
+    <div class="feed" style="margin-top:24px;">
       {% for post in posts %}
         <div class="panel">
           <div class="post-head">

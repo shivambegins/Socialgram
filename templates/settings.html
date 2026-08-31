@@ -57,11 +57,11 @@
 
 <div class="container">
   <div class="tabs">
-    <button class="tab-btn active" onclick="showTab('activity')">Activity Stats</button>
-    <button class="tab-btn" onclick="showTab('screentime')">Screen Time</button>
-    <button class="tab-btn" onclick="showTab('comments')">Your Comments</button>
-    <button class="tab-btn" onclick="showTab('liked')">Liked Posts</button>
-    <button class="tab-btn" onclick="showTab('blocked')">Blocked Users</button>
+    <button class="tab-btn active" onclick="showTab('activity')">📊 Activity Stats</button>
+    <button class="tab-btn" onclick="showTab('screentime')">⏱️ Screen Time</button>
+    <button class="tab-btn" onclick="showTab('comments')">💬 Your Comments</button>
+    <button class="tab-btn" onclick="showTab('liked')">❤️ Liked Posts</button>
+    <button class="tab-btn" onclick="showTab('blocked')">🚫 Blocked Users</button>
     <button class="tab-btn" onclick="showTab('danger')" style="color: var(--danger);">Danger Zone</button>
   </div>
   
@@ -69,23 +69,23 @@
     
     <!-- Activity Panel -->
     <div id="activity" class="panel active">
-      <h2>Account Activity</h2>
+      <h2>📊 Account Activity</h2>
             <div class="stat-grid">
         <div class="stat-card">
           <div class="val">{{ account_age }}</div>
-          <div class="lbl">Days Old</div>
+          <div class="lbl">📅 Days Old</div>
         </div>
         <div class="stat-card">
           <div class="val">{{ total_posts }}</div>
-          <div class="lbl">Posts Made</div>
+          <div class="lbl">📝 Posts Made</div>
         </div>
         <div class="stat-card">
           <div class="val">{{ total_likes_given }}</div>
-          <div class="lbl">Likes Given</div>
+          <div class="lbl">❤️ Likes Given</div>
         </div>
         <div class="stat-card">
           <div class="val">{{ total_comments_made }}</div>
-          <div class="lbl">Comments</div>
+          <div class="lbl">💬 Comments</div>
         </div>
       </div>
     </div>
@@ -93,16 +93,16 @@
     
     <!-- Screen Time Panel -->
     <div id="screentime" class="panel">
-      <h2>Your Screen Time</h2>
+      <h2>⏱️ Your Screen Time</h2>
       
       <div class="stat-grid" style="margin-bottom: 32px;">
         <div class="stat-card">
           <div class="val">{{ today_screen_time }}</div>
-          <div class="lbl">Today's Time</div>
+          <div class="lbl">📱 Today's Time</div>
         </div>
         <div class="stat-card">
           <div class="val">{{ avg_screen_time }}</div>
-          <div class="lbl">Daily Average</div>
+          <div class="lbl">⏳ Daily Average</div>
         </div>
       </div>
       
@@ -114,7 +114,7 @@
 
     <!-- Comments Panel -->
     <div id="comments" class="panel">
-      <h2>Your Recent Comments</h2>
+      <h2>💬 Your Recent Comments</h2>
       {% if user_comments %}
         {% for c in user_comments %}
         <div class="list-item">
@@ -147,7 +147,7 @@
     
     <!-- Blocked Users Panel -->
     <div id="blocked" class="panel">
-      <h2>Blocked Users</h2>
+      <h2>🚫 Blocked Users</h2>
       {% if blocked_users %}
         {% for b in blocked_users %}
         <div class="list-item">

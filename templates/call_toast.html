@@ -1,3 +1,11 @@
+
+  <audio id="ringtone-audio" loop>
+    <source src="https://actions.google.com/sounds/v1/alarms/telephone_ring_01.ogg" type="audio/ogg">
+    <source src="https://www.soundjay.com/phone/sounds/telephone-ring-04a.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="notif-audio">
+    <source src="https://www.soundjay.com/buttons/sounds/button-16.mp3" type="audio/mpeg">
+  </audio>
 <div id="call-toast" style="display:none; position:fixed; bottom:24px; right:24px; background:var(--panel,#121826); border:1px solid var(--cyan,#4FE3C1); border-radius:12px; padding:16px; z-index:9999; box-shadow:0 10px 25px rgba(0,0,0,0.5); flex-direction:column; gap:12px; width:300px; font-family:'Inter',sans-serif;">
   <div style="display:flex; align-items:center; gap:12px;">
     <div id="ring-icon" style="width:48px; height:48px; border-radius:50%; background:var(--cyan,#4FE3C1); display:flex; align-items:center; justify-content:center; flex-shrink:0; animation: ringPulse 1.2s ease-in-out infinite;">
@@ -74,6 +82,11 @@
         }
         
         document.getElementById('call-toast').style.display = 'flex';
+        try { 
+          let ring = document.getElementById('ringtone-audio');
+          ring.volume = 0.5; // don't blast ears
+          ring.play().catch(e=>console.log(e)); 
+        } catch(e){}
         
         // Browser notification
         if (Notification.permission === 'granted') {
@@ -98,6 +111,11 @@
 
   function hideToast() {
     document.getElementById('call-toast').style.display = 'none';
+    try { 
+      let r = document.getElementById('ringtone-audio'); 
+      r.pause(); 
+      r.currentTime = 0; 
+    } catch(e){}
     window._incomingCallData = null;
   }
 

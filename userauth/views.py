@@ -10,7 +10,7 @@ from django.views.decorators.http import require_POST
 from django.conf import settings
 from django.core.cache import cache
 import requests
-from .models import Profile, Post, Connection, Like, Comment, Notification, Message, Share, PostView, MessageGroup, GroupMember, GroupMessage, BlockedUser, OTPToken, DailyScreenTime
+from .models import Profile, Post, Connection, Like, Comment, Notification, Message, Share, PostView, MessageGroup, GroupMember, GroupMessage, BlockedUser, OTPToken, DailyScreenTime, MemorableMoment
 # Create your views here.
 def signup(request):
     if request.method == 'POST':
@@ -580,13 +580,22 @@ def edit_post(request, post_id):
 @login_required
 def profile(request, username):
     user = get_object_or_404(User, username=username)
+    
+    # Increment view count if not own profile
+    if request.user.is_authenticated and request.user != user:
+        # Prevent rapid refreshing by checking session (optional, but simple approach here)
+        user.profile.view_count += 1
+        user.profile.save()
+        
     posts = Post.objects.filter(user=user).order_by('-created_AT')
-    connected_ids = set(Connection.objects.filter(from_user=request.user).values_list('to_user_id', flat=True))
+    connected_ids = set(Connection.objects.filter(from_user=request.user).values_list('to_user_id', flat=True)) if request.user.is_authenticated else set()
+    moments = MemorableMoment.objects.filter(user=user).order_by('-created_at')
     
     return render(request, 'profile.html', {
         'profile_user': user,
         'posts': posts,
-        'connected_ids': connected_ids
+        'connected_ids': connected_ids,
+        'moments': moments
     })
 
 @login_required
@@ -706,8 +715,8 @@ def request_account_deletion(request):
         user = request.user
         otp_code = f"{random.randint(100000, 999999)}"
         
-        OTPToken, DailyScreenTime.objects.filter(user=user, purpose='delete_account').delete()
-        OTPToken, DailyScreenTime.objects.create(user=user, token=otp_code, purpose='delete_account')
+        OTPToken.objects.filter(user=user, purpose='delete_account').delete()
+        OTPToken.objects.create(user=user, token=otp_code, purpose='delete_account')
         
         try:
             send_mail(
@@ -728,7 +737,7 @@ def verify_account_deletion(request):
         otp_input = request.POST.get('otp', '').strip()
         user = request.user
         
-        token_obj = OTPToken, DailyScreenTime.objects.filter(user=user, purpose='delete_account').order_by('-created_at').first()
+        token_obj = OTPToken.objects.filter(user=user, purpose='delete_account').order_by('-created_at').first()
         if not token_obj:
             return redirect('user_settings')
             
@@ -761,3 +770,43 @@ def ping_screen_time(request):
     return JsonResponse({'status': 'error'}, status=400)
 
 
+
+@login_required
+def edit_profile(request):
+    user = request.user
+    profile = user.profile
+    if request.method == 'POST':
+        if 'update_profile' in request.POST:
+            profile.bio = request.POST.get('bio', profile.bio)
+            if request.POST.get('remove_profileimg') == 'true':
+                profile.profileimg = 'blank_profile-pictures.png'
+            elif 'profileimg' in request.FILES:
+                profile.profileimg = request.FILES['profileimg']
+                
+            if request.POST.get('remove_coverimg') == 'true':
+                profile.coverimg = 'blank-cover.png'
+            elif 'coverimg' in request.FILES:
+                profile.coverimg = request.FILES['coverimg']
+            profile.save()
+            return redirect('profile', username=user.username)
+            
+        elif 'add_moment' in request.POST:
+            caption = request.POST.get('caption', '')
+            if 'moment_file' in request.FILES:
+                MemorableMoment.objects.create(
+                    user=user,
+                    file=request.FILES['moment_file'],
+                    caption=caption
+                )
+            return redirect('edit_profile')
+            
+        elif 'delete_moment_id' in request.POST:
+            moment_id = request.POST.get('delete_moment_id')
+            MemorableMoment.objects.filter(id=moment_id, user=user).delete()
+            return redirect('edit_profile')
+            
+    moments = MemorableMoment.objects.filter(user=user).order_by('-created_at')
+    return render(request, 'edit_profile.html', {
+        'profile': profile,
+        'moments': moments
+    })

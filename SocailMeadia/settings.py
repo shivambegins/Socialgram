@@ -1,3 +1,6 @@
+import re
+import django.utils.cache
+django.utils.cache.cc_delim_re = re.compile(r'\s*,\s*')
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -44,10 +47,15 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'channels',
     'userauth',
+    'api',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -167,4 +175,19 @@ CHANNEL_LAYERS = {
 
 
 DEFAULT_FROM_EMAIL = 'Socialgram <' + os.environ.get('EMAIL_HOST_USER', 'noreply@socialgram.com') + '>'
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
+}
+
+CORS_ALLOW_ALL_ORIGINS = True # Good for mobile app dev
 

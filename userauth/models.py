@@ -1,3 +1,4 @@
+from django.utils import timezone
 import uuid
 from django.db import models
 from django.contrib.auth.models import User
@@ -10,7 +11,9 @@ class Profile(models.Model):
     id_user = models.IntegerField(primary_key=True, default=0)
     bio = models.TextField(blank=True, default='')
     profileimg = models.ImageField(upload_to='profile_images', blank=True, null=True, default='blank_profile-pictures.png')
+    coverimg = models.ImageField(upload_to='cover_images', blank=True, null=True, default='blank-cover.png')
     location = models.TextField(max_length=100, blank=True, default='')
+    view_count = models.IntegerField(default=0)
 
     def __str__(self):
         return self.user.username
@@ -180,4 +183,15 @@ class DailyScreenTime(models.Model):
 
     def __str__(self):
         return f'{self.user.username} - {self.date} - {self.time_seconds}s'
+
+
+class MemorableMoment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='moments')
+    file = models.FileField(upload_to='moments_files')
+    caption = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.user.username}'s moment"
+
 
