@@ -1,3 +1,8 @@
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).resolve().parent.parent / '.env')
+
 """
 Django settings for SocailMeadia project.
 
@@ -9,8 +14,6 @@ https://docs.djangoproject.com/en/6.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
-import os
-from pathlib import Path
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -84,7 +87,6 @@ DATABASES = {
     }
 }
 
-import os
 if 'DATABASE_URL' in os.environ:
     import dj_database_url
     DATABASES['default'] = dj_database_url.config(conn_max_age=600)
@@ -133,7 +135,14 @@ STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'),)
 
 MAILERS = {
     'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+        'OPTIONS': {
+            'host': 'smtp.gmail.com',
+            'port': 587,
+            'use_tls': True,
+            'username': os.environ.get('EMAIL_HOST_USER', ''),
+            'password': os.environ.get('EMAIL_HOST_PASSWORD', ''),
+        }
     },
 }
 
@@ -151,4 +160,11 @@ CHANNEL_LAYERS = {
 }
 
 
+
+
+
+
+
+
+DEFAULT_FROM_EMAIL = 'Socialgram <' + os.environ.get('EMAIL_HOST_USER', 'noreply@socialgram.com') + '>'
 

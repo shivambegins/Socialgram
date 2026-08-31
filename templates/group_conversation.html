@@ -109,9 +109,15 @@
     </div>
   </div>
   <div class="call-controls">
-    <button class="ctrl-btn mute" id="muteBtn" onclick="toggleMute()">🎤</button>
-    <button class="ctrl-btn cam" id="camBtn" onclick="toggleCam()">📷</button>
-    <button class="ctrl-btn hangup" onclick="hangUp()">📵</button>
+    <button class="ctrl-btn mute" id="muteBtn" onclick="toggleMute()" title="Mute">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:24px;height:24px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    </button>
+    <button class="ctrl-btn cam" id="camBtn" onclick="toggleCam()" title="Camera">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:24px;height:24px;"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+    </button>
+    <button class="ctrl-btn hangup" onclick="hangUp()" title="Hang up">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" style="width:28px;height:28px;transform:rotate(135deg);"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8a19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13 1 .36 1.97.71 2.91a2 2 0 01-.45 2.11L8.09 7.91a16 16 0 006 6l1.17-1.17a2 2 0 012.11-.45c.94.35 1.91.58 2.91.71A2 2 0 0122 16.92z"/></svg>
+    </button>
   </div>
 </div>
 
@@ -155,12 +161,20 @@ let callWS, localStream;
 let callType = 'audio';
 let peers = {}; // map of user_id -> RTCPeerConnection
 
+  window.addEventListener('DOMContentLoaded', async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const autoJoin = urlParams.get('auto_join');
+    if (autoJoin) {
+      startCall(autoJoin);
+    }
+  });
+
 const ICE_SERVERS = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
 async function startCall(type) {
   callType = type;
   document.getElementById('callOverlay').classList.add('active');
-  document.getElementById('camBtn').style.display = type === 'video' ? 'flex' : 'none';
+  
   
   const constraints = { audio: true, video: type === 'video' };
   localStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -262,7 +276,30 @@ function toggleCam() {
   document.getElementById('camBtn').textContent = camOff ? '📵' : '📷';
 }
 </script>
+
+<script>
+  let activeSeconds = 0;
+  setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      activeSeconds += 10;
+      if (activeSeconds >= 30) {
+        fetch('/settings/ping-time/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+          },
+          body: JSON.stringify({seconds: activeSeconds})
+        }).catch(err => console.log('Screen time ping failed'));
+        activeSeconds = 0;
+      }
+    }
+  }, 10000);
+</script>
 </body>
 </html>
+
+
+
 
 

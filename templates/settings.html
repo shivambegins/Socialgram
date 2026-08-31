@@ -1,0 +1,243 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Settings - Socialgram</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Grand+Hotel&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #06110E; --panel: #0A1C17; --panel-2: #0F2922; --line: #163C31;
+      --text: #E8F5F1; --muted: #8AB4A8; --faint: #4A7A6D;
+      --cyan: #4FE3C1; --cyan-dim: rgba(79,227,193,0.15);
+      --coral: #FF6B5B; --coral-dim: rgba(255,107,91,0.15);
+      --danger: #FF4A4A;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+      --font-display: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'Space Mono', monospace;
+    }
+    body { margin:0; font-family:var(--font-body); background:var(--bg); color:var(--text); }
+    .nav { position:sticky; top:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding:12px 32px; background:rgba(6,17,14,0.7); backdrop-filter:blur(20px); border-bottom:1px solid var(--line); }
+    .logo { font-family:'Grand Hotel', cursive; font-size:28px; color:var(--cyan); text-decoration:none; display:flex; align-items:center; gap:10px; }
+    
+    .container { max-width: 1000px; margin: 40px auto; display: grid; grid-template-columns: 240px 1fr; gap: 32px; padding: 0 20px; }
+    
+    .tabs { display: flex; flex-direction: column; gap: 8px; }
+    .tab-btn { background: none; border: none; text-align: left; padding: 12px 16px; border-radius: 8px; color: var(--muted); font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .tab-btn:hover { background: var(--panel); color: var(--text); }
+    .tab-btn.active { background: var(--cyan-dim); color: var(--cyan); }
+    
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 32px; display: none; }
+    .panel.active { display: block; }
+    .panel h2 { margin-top: 0; font-family: var(--font-display); font-size: 24px; border-bottom: 1px solid var(--line); padding-bottom: 16px; margin-bottom: 24px; }
+    
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; }
+    .stat-card { background: var(--panel-2); padding: 20px; border-radius: 12px; text-align: center; }
+    .stat-card .val { font-size: 32px; font-weight: 700; color: var(--cyan); font-family: var(--font-mono); }
+    .stat-card .lbl { font-size: 13px; color: var(--muted); margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; }
+    
+    .list-item { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid var(--line); }
+    .list-item:last-child { border-bottom: none; }
+    
+    .btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; text-decoration: none; display: inline-block; border: none; }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    
+    .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+    .user-info { display: flex; align-items: center; gap: 12px; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="{% url 'home' %}" class="logo">Socialgram</a>
+  <a href="{% url 'profile' request.user.username %}" class="btn btn-ghost">Back to Profile</a>
+</nav>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('activity')">Activity Stats</button>
+    <button class="tab-btn" onclick="showTab('screentime')">Screen Time</button>
+    <button class="tab-btn" onclick="showTab('comments')">Your Comments</button>
+    <button class="tab-btn" onclick="showTab('liked')">Liked Posts</button>
+    <button class="tab-btn" onclick="showTab('blocked')">Blocked Users</button>
+    <button class="tab-btn" onclick="showTab('danger')" style="color: var(--danger);">Danger Zone</button>
+  </div>
+  
+  <div class="content">
+    
+    <!-- Activity Panel -->
+    <div id="activity" class="panel active">
+      <h2>Account Activity</h2>
+            <div class="stat-grid">
+        <div class="stat-card">
+          <div class="val">{{ account_age }}</div>
+          <div class="lbl">Days Old</div>
+        </div>
+        <div class="stat-card">
+          <div class="val">{{ total_posts }}</div>
+          <div class="lbl">Posts Made</div>
+        </div>
+        <div class="stat-card">
+          <div class="val">{{ total_likes_given }}</div>
+          <div class="lbl">Likes Given</div>
+        </div>
+        <div class="stat-card">
+          <div class="val">{{ total_comments_made }}</div>
+          <div class="lbl">Comments</div>
+        </div>
+      </div>
+    </div>
+    
+    
+    <!-- Screen Time Panel -->
+    <div id="screentime" class="panel">
+      <h2>Your Screen Time</h2>
+      
+      <div class="stat-grid" style="margin-bottom: 32px;">
+        <div class="stat-card">
+          <div class="val">{{ today_screen_time }}</div>
+          <div class="lbl">Today's Time</div>
+        </div>
+        <div class="stat-card">
+          <div class="val">{{ avg_screen_time }}</div>
+          <div class="lbl">Daily Average</div>
+        </div>
+      </div>
+      
+      <h3 style="font-family:var(--font-display); font-size:18px; margin-bottom:16px;">This Week (Minutes)</h3>
+      <div style="background:var(--panel-2); padding:20px; border-radius:12px;">
+        <canvas id="screenTimeChart" width="100%" height="40"></canvas>
+      </div>
+    </div>
+
+    <!-- Comments Panel -->
+    <div id="comments" class="panel">
+      <h2>Your Recent Comments</h2>
+      {% if user_comments %}
+        {% for c in user_comments %}
+        <div class="list-item">
+          <div>
+            <div style="color:var(--muted); font-size:13px; margin-bottom:4px;">On a post by @{{ c.post.user.username }}</div>
+            <div>"{{ c.text }}"</div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="color:var(--muted); text-align:center; padding:40px;">No comments yet.</div>
+      {% endif %}
+    </div>
+    
+    <!-- Liked Panel -->
+    <div id="liked" class="panel">
+      <h2>Posts You've Liked</h2>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:12px;">
+        {% for p in liked_posts %}
+          {% if p.image %}
+          <div style="aspect-ratio:1; border-radius:8px; overflow:hidden;">
+            <img src="{{ p.image.url }}" style="width:100%; height:100%; object-fit:cover;">
+          </div>
+          {% endif %}
+        {% empty %}
+          <div style="color:var(--muted); grid-column:1/-1; text-align:center; padding:40px;">No liked posts.</div>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <!-- Blocked Users Panel -->
+    <div id="blocked" class="panel">
+      <h2>Blocked Users</h2>
+      {% if blocked_users %}
+        {% for b in blocked_users %}
+        <div class="list-item">
+          <div class="user-info">
+            <img src="{{ b.blocked.profile.profileimg.url }}" class="avatar">
+            <div>
+              <div style="font-weight:600;">{{ b.blocked.profile.name }}</div>
+              <div style="color:var(--muted); font-size:13px;">@{{ b.blocked.username }}</div>
+            </div>
+          </div>
+          <a href="{% url 'unblock_user' b.blocked.username %}" class="btn btn-ghost" style="padding:6px 12px;">Unblock</a>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="color:var(--muted); text-align:center; padding:40px;">You haven't blocked anyone.</div>
+      {% endif %}
+    </div>
+    
+    <!-- Danger Zone Panel -->
+    <div id="danger" class="panel" style="border-color: var(--danger);">
+      <h2 style="color: var(--danger); border-bottom-color: rgba(255,74,74,0.2);">Delete Account</h2>
+      <div style="background: rgba(255,74,74,0.05); padding: 24px; border-radius: 12px; margin-bottom: 24px;">
+        <h3 style="margin-top:0; color:var(--text);">Proceed with caution</h3>
+        <p style="color: var(--muted); line-height: 1.6;">Deleting your account is permanent. All your posts, likes, comments, and connections will be permanently wiped from our servers.</p>
+        <p style="color: var(--muted); line-height: 1.6;">To verify this request, we will email a 6-digit One-Time Password (OTP) to <strong>{{ request.user.email }}</strong>.</p>
+      </div>
+      
+      <form action="{% url 'request_account_deletion' %}" method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Send OTP & Delete Account</button>
+      </form>
+    </div>
+    
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('screenTimeChart').getContext('2d');
+    const chartData = {{ chart_data|safe }};
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: chartData.labels,
+            datasets: [{
+                label: 'Active Minutes',
+                data: chartData.data,
+                backgroundColor: '#4FE3C1',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#163C31' }, ticks: { color: '#8AB4A8' } },
+                x: { grid: { display: false }, ticks: { color: '#8AB4A8' } }
+            }
+        }
+    });
+});
+
+function showTab(id) {
+  document.querySelectorAll('.panel').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+
+<script>
+  let activeSeconds = 0;
+  setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      activeSeconds += 10;
+      if (activeSeconds >= 30) {
+        fetch('/settings/ping-time/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+          },
+          body: JSON.stringify({seconds: activeSeconds})
+        }).catch(err => console.log('Screen time ping failed'));
+        activeSeconds = 0;
+      }
+    }
+  }, 10000);
+</script>
+</body>
+</html>

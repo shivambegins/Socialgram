@@ -4,6 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="csrf-token" content="{{ csrf_token }}">
 <title>Chat with {{ partner.username }}</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -61,25 +62,26 @@
   #remoteVideo{width:100%;flex:1;object-fit:cover;background:#111;}
   #localVideo{position:absolute;bottom:120px;right:20px;width:120px;height:90px;border-radius:12px;object-fit:cover;border:2px solid var(--cyan);background:#1a1a1a;}
   .call-controls{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:16px;padding:24px;background:linear-gradient(transparent,rgba(0,0,0,0.8));}
-  .ctrl-btn{width:56px;height:56px;border-radius:50%;border:none;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s;}
+  .ctrl-btn{width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s;}
   .ctrl-btn:hover{transform:scale(1.08);}
-  .ctrl-btn.mute{background:var(--panel);color:var(--text);}
-  .ctrl-btn.cam{background:var(--panel);color:var(--text);}
-  .ctrl-btn.hangup{background:var(--coral);color:#fff;}
+  .ctrl-btn svg{width:24px;height:24px;}
+  .ctrl-btn.mute{background:rgba(255,255,255,0.15);color:#fff;}
+  .ctrl-btn.cam{background:rgba(255,255,255,0.15);color:#fff;}
+  .ctrl-btn.hangup{background:#EF4444;color:#fff;}
   .call-status{position:absolute;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);color:var(--text);font-size:13px;padding:6px 16px;border-radius:20px;font-family:'JetBrains Mono',monospace;}
   @media (max-width:480px){
     .nav { padding: 12px 8px; gap: 8px; }
     .call-btn { padding: 8px; }
     .call-btn span { display: none; }
     .messages { padding: 16px 8px; }
-    .compose-bar { padding: 12px 8px; }
-    .bubble-wrap { max-width: 85%; }
+    .composer { padding: 12px 8px; }
+    .bubble { max-width: 85%; }
   }
 </style>
 </head>
 <body>
 
-<!-- ── NAV ── -->
+<!-- NAV -->
 <nav class="nav">
   <a href="{% url 'inbox' %}" class="back">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><polyline points="15 18 9 12 15 6"/></svg>
@@ -104,7 +106,7 @@
   </div>
 </nav>
 
-<!-- ── MESSAGES ── -->
+<!-- MESSAGES -->
 <div class="messages" id="messages">
   {% for msg in messages %}
     <div class="bubble-wrap {% if msg.sender == request.user %}mine{% else %}theirs{% endif %}">
@@ -116,43 +118,68 @@
   {% endfor %}
 </div>
 
-<!-- ── COMPOSER ── -->
+<!-- COMPOSER -->
 <div class="composer">
   <input type="text" id="msg-input" placeholder="Type a message…" autocomplete="off" autofocus>
   <button class="send-btn" onclick="sendMessage()">Send</button>
 </div>
 
-<!-- ── INCOMING CALL OVERLAY ── -->
+<!-- INCOMING CALL OVERLAY (when both users are on same conversation page) -->
 <div class="incoming-overlay" id="incomingOverlay">
   <div class="incoming-card">
     <div class="ring-avatar"></div>
     <h3 id="callerName">{{ partner.username }}</h3>
     <p id="callTypeLabel">Incoming voice call…</p>
     <div class="incoming-actions">
-      <button class="accept-btn" onclick="acceptCall()" title="Accept">📞</button>
-      <button class="decline-btn" onclick="declineCall()" title="Decline">📵</button>
+      <button class="accept-btn" onclick="acceptCall()" title="Accept">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:24px;height:24px;"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8a19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13 1 .36 1.97.71 2.91a2 2 0 01-.45 2.11L8.09 7.91a16 16 0 006 6l1.17-1.17a2 2 0 012.11-.45c.94.35 1.91.58 2.91.71A2 2 0 0122 16.92z"/></svg>
+      </button>
+      <button class="decline-btn" onclick="declineCall()" title="Decline">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:24px;height:24px;transform:rotate(135deg);"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8a19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13 1 .36 1.97.71 2.91a2 2 0 01-.45 2.11L8.09 7.91a16 16 0 006 6l1.17-1.17a2 2 0 012.11-.45c.94.35 1.91.58 2.91.71A2 2 0 0122 16.92z"/></svg>
+      </button>
     </div>
   </div>
 </div>
 
-<!-- ── ACTIVE CALL OVERLAY ── -->
+<!-- ACTIVE CALL OVERLAY -->
 <div class="call-overlay" id="callOverlay">
   <div class="call-status" id="callStatus">Calling…</div>
   <video id="remoteVideo" autoplay playsinline></video>
   <video id="localVideo" autoplay playsinline muted></video>
   <div class="call-controls">
-    <button class="ctrl-btn mute" id="muteBtn" onclick="toggleMute()" title="Mute">🎤</button>
-    <button class="ctrl-btn cam" id="camBtn" onclick="toggleCam()" title="Camera">📷</button>
-    <button class="ctrl-btn hangup" onclick="hangUp()" title="Hang up">📵</button>
+    <!-- Mute mic button -->
+    <button class="ctrl-btn mute" id="muteBtn" onclick="toggleMute()" title="Mute">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    </button>
+    <!-- Camera toggle button -->
+    <button class="ctrl-btn cam" id="camBtn" onclick="toggleCam()" title="Camera">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+    </button>
+    <!-- Switch Voice/Video button -->
+    <button class="ctrl-btn" id="switchModeBtn" onclick="switchCallMode()" title="Switch to Video" style="background:rgba(139,92,246,0.6);color:#fff;">
+      <svg id="svgToVideo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:24px;height:24px;">
+        <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+      </svg>
+      <svg id="svgToVoice" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:24px;height:24px;display:none;">
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+      </svg>
+    </button>
+    <!-- Hang up button (telephone dropping down) -->
+    <button class="ctrl-btn hangup" onclick="hangUp()" title="Hang up">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" style="width:28px;height:28px;transform:rotate(135deg);"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8a19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13 1 .36 1.97.71 2.91a2 2 0 01-.45 2.11L8.09 7.91a16 16 0 006 6l1.17-1.17a2 2 0 012.11-.45c.94.35 1.91.58 2.91.71A2 2 0 0122 16.92z"/></svg>
+    </button>
   </div>
 </div>
 
 <script>
-const ME_ID    = {{ request.user.id }};
+const ME_ID     = {{ request.user.id }};
 const PARTNER_ID = {{ partner.id }};
-const PARTNER  = "{{ partner.username }}";
+const PARTNER   = "{{ partner.username }}";
 
-// ── WebSocket Chat ──────────────────────────────────────────────────────────
+// Expose for merge-call feature in call_toast.html
+window._currentCallPartnerId = PARTNER_ID;
+
+// ── WebSocket Chat ──
 const chatWS = new WebSocket(`ws://${location.host}/ws/chat/${PARTNER_ID}/`);
 const msgBox = document.getElementById('messages');
 const statusEl = document.getElementById('ws-status');
@@ -192,9 +219,9 @@ function escHtml(s) {
 // Scroll to bottom on load
 msgBox.scrollTop = msgBox.scrollHeight;
 
-// ── WebRTC Call ─────────────────────────────────────────────────────────────
+// ── WebRTC Call ──
 let callWS, pc, localStream;
-let callType   = 'audio';   // 'audio' | 'video'
+let callType   = 'audio';
 let isCaller   = false;
 let micMuted   = false;
 let camOff     = false;
@@ -207,29 +234,50 @@ const ICE_SERVERS = {
 };
 
 function connectCallWS() {
-  callWS = new WebSocket(`ws://${location.host}/ws/call/${PARTNER_ID}/`);
-  callWS.onmessage = async (e) => {
-    const sig = JSON.parse(e.data);
-    if      (sig.type === 'offer')         await handleOffer(sig);
-    else if (sig.type === 'answer')        await handleAnswer(sig);
-    else if (sig.type === 'ice-candidate') await handleIce(sig);
-    else if (sig.type === 'incoming-call') showIncoming(sig.callType);
-    else if (sig.type === 'call-rejected') { closeCall(); alert(`${PARTNER} declined the call.`); }
-    else if (sig.type === 'call-ended')    closeCall();
-  };
-  return new Promise(r => { callWS.onopen = r; });
+  return new Promise((resolve) => {
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    callWS = new WebSocket(`${proto}://${location.host}/ws/call/${PARTNER_ID}/`);
+    
+    callWS.onopen = () => {
+      console.log('[Call] WebSocket connected');
+      resolve();
+    };
+    
+    callWS.onmessage = async (e) => {
+      const sig = JSON.parse(e.data);
+      console.log('[Call] Received signal:', sig.type);
+      
+      if      (sig.type === 'offer')          await handleOffer(sig);
+      else if (sig.type === 'answer')         await handleAnswer(sig);
+      else if (sig.type === 'ice-candidate')  await handleIce(sig);
+      else if (sig.type === 'incoming-call')  showIncoming(sig.callType);
+      else if (sig.type === 'receiver-ready') {
+        // Receiver is ready, now create and send the offer
+        if (isCaller && localStream && pc) {
+          console.log('[Call] Receiver ready, creating offer...');
+          await createOffer();
+        }
+      }
+      else if (sig.type === 'call-rejected') { closeCall(); alert(`${PARTNER} declined the call.`); }
+      else if (sig.type === 'call-ended')    closeCall();
+    };
+  });
 }
 
+// CALLER: starts the call
 async function startCall(type) {
   callType = type;
   isCaller = true;
   await connectCallWS();
+  // Tell the partner's CallConsumer about the incoming call
+  // This also triggers the notification via NotificationConsumer
   callWS.send(JSON.stringify({ type: 'incoming-call', callType: type }));
   await openMedia();
-  showCallOverlay('Calling ' + PARTNER + '…');
-  await createOffer();
+  showCallOverlay('Calling ' + PARTNER + '...');
+  // Do NOT create offer yet — wait for 'receiver-ready' signal
 }
 
+// RECEIVER (on same page): sees the incoming call overlay
 function showIncoming(type) {
   callType = type;
   isCaller = false;
@@ -238,25 +286,44 @@ function showIncoming(type) {
   document.getElementById('incomingOverlay').classList.add('active');
 }
 
+// RECEIVER: accepts the call (from the in-page overlay)
 async function acceptCall() {
   document.getElementById('incomingOverlay').classList.remove('active');
-  await connectCallWS();
+  // The callWS was already created by the incoming-call signal handler
+  // but the receiver might not have connected yet
+  if (!callWS || callWS.readyState !== WebSocket.OPEN) {
+    await connectCallWS();
+  }
   await openMedia();
   showCallOverlay('Connected');
+  // Tell the caller we're ready
+  callWS.send(JSON.stringify({ type: 'receiver-ready' }));
 }
 
 function declineCall() {
   document.getElementById('incomingOverlay').classList.remove('active');
-  if (callWS) callWS.send(JSON.stringify({ type: 'call-rejected' }));
+  if (callWS && callWS.readyState === WebSocket.OPEN) {
+    callWS.send(JSON.stringify({ type: 'call-rejected' }));
+  }
 }
 
 async function openMedia() {
-  const constraints = callType === 'video'
-    ? { audio: true, video: true }
-    : { audio: true, video: false };
-  localStream = await navigator.mediaDevices.getUserMedia(constraints);
+  // Always request both audio and video so we can toggle camera later
+  localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
   document.getElementById('localVideo').srcObject = localStream;
-  if (callType !== 'video') document.getElementById('localVideo').style.display = 'none';
+  
+  if (callType !== 'video') {
+    // Start with camera off for voice calls, but keep track available for toggle
+    camOff = true;
+    localStream.getVideoTracks().forEach(t => t.enabled = false);
+    document.getElementById('localVideo').style.display = 'none';
+    document.getElementById('camBtn').style.background = '#ff4444';
+  } else {
+    camOff = false;
+    document.getElementById('localVideo').style.display = 'block';
+    document.getElementById('camBtn').style.background = 'rgba(255,255,255,0.15)';
+  }
+  
   setupPeerConnection();
 }
 
@@ -265,11 +332,12 @@ function setupPeerConnection() {
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
 
   pc.ontrack = (e) => {
+    console.log('[Call] Got remote track');
     document.getElementById('remoteVideo').srcObject = e.streams[0];
     document.getElementById('callStatus').textContent = 'Connected';
   };
   pc.onicecandidate = (e) => {
-    if (e.candidate && callWS.readyState === WebSocket.OPEN) {
+    if (e.candidate && callWS && callWS.readyState === WebSocket.OPEN) {
       callWS.send(JSON.stringify({ type: 'ice-candidate', candidate: e.candidate }));
     }
   };
@@ -285,7 +353,9 @@ async function createOffer() {
 }
 
 async function handleOffer(sig) {
-  if (!pc) setupPeerConnection();
+  if (!pc) {
+    await openMedia();
+  }
   await pc.setRemoteDescription(new RTCSessionDescription(sig.sdp));
   const answer = await pc.createAnswer();
   await pc.setLocalDescription(answer);
@@ -304,11 +374,13 @@ async function handleIce(sig) {
 function showCallOverlay(status) {
   document.getElementById('callStatus').textContent = status;
   document.getElementById('callOverlay').classList.add('active');
-  if (callType !== 'video') {
-    document.getElementById('remoteVideo').style.display = 'none';
-    document.getElementById('localVideo').style.display  = 'none';
+  // Always show camera button so user can switch voice<->video
+  document.getElementById('camBtn').style.display = 'flex';
+  // Show/hide videos based on current camera state
+  document.getElementById('remoteVideo').style.display = '';
+  if (camOff) {
+    document.getElementById('localVideo').style.display = 'none';
   }
-  document.getElementById('camBtn').style.display = callType === 'video' ? 'flex' : 'none';
 }
 
 function hangUp() {
@@ -326,25 +398,99 @@ function closeCall() {
   document.getElementById('remoteVideo').style.display = '';
   document.getElementById('localVideo').style.display  = '';
   micMuted = false; camOff = false;
-  document.getElementById('muteBtn').textContent = '🎤';
-  document.getElementById('camBtn').textContent  = '📷';
 }
 
 function toggleMute() {
   if (!localStream) return;
   micMuted = !micMuted;
   localStream.getAudioTracks().forEach(t => t.enabled = !micMuted);
-  document.getElementById('muteBtn').textContent = micMuted ? '🔇' : '🎤';
+  document.getElementById('muteBtn').style.background = micMuted ? '#ff4444' : 'rgba(255,255,255,0.15)';
 }
 
 function toggleCam() {
   if (!localStream) return;
   camOff = !camOff;
   localStream.getVideoTracks().forEach(t => t.enabled = !camOff);
-  document.getElementById('camBtn').textContent = camOff ? '📵' : '📷';
+  document.getElementById('camBtn').style.background = camOff ? '#ff4444' : 'rgba(255,255,255,0.15)';
+  document.getElementById('localVideo').style.display = camOff ? 'none' : 'block';
+  updateSwitchBtn();
 }
+
+function switchCallMode() {
+  if (!localStream) return;
+  if (camOff) {
+    // Currently voice → switch to video
+    camOff = false;
+    localStream.getVideoTracks().forEach(t => t.enabled = true);
+    document.getElementById('camBtn').style.background = 'rgba(255,255,255,0.15)';
+    document.getElementById('localVideo').style.display = 'block';
+    document.getElementById('remoteVideo').style.display = '';
+    callType = 'video';
+  } else {
+    // Currently video → switch to voice
+    camOff = true;
+    localStream.getVideoTracks().forEach(t => t.enabled = false);
+    document.getElementById('camBtn').style.background = '#ff4444';
+    document.getElementById('localVideo').style.display = 'none';
+    callType = 'audio';
+  }
+  updateSwitchBtn();
+}
+
+function updateSwitchBtn() {
+  const btn = document.getElementById('switchModeBtn');
+  const svgVideo = document.getElementById('svgToVideo');
+  const svgVoice = document.getElementById('svgToVoice');
+  
+  if (camOff) {
+    btn.title = 'Switch to Video';
+    btn.style.background = 'rgba(139,92,246,0.6)';
+    if (svgVideo) svgVideo.style.display = 'block';
+    if (svgVoice) svgVoice.style.display = 'none';
+  } else {
+    btn.title = 'Switch to Voice';
+    btn.style.background = 'rgba(139,92,246,1)';
+    if (svgVideo) svgVideo.style.display = 'none';
+    if (svgVoice) svgVoice.style.display = 'block';
+  }
+}
+
+// ── Auto-join when arriving from notification toast ──
+window.addEventListener('DOMContentLoaded', async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const autoJoin = urlParams.get('auto_join');
+  if (autoJoin) {
+    console.log('[Call] Auto-joining call as receiver, type:', autoJoin);
+    callType = autoJoin;
+    isCaller = false;
+    await connectCallWS();
+    await openMedia();
+    showCallOverlay('Connected');
+    // Tell the caller we're ready so they send the offer
+    callWS.send(JSON.stringify({ type: 'receiver-ready' }));
+  }
+});
+</script>
+{% include 'call_toast.html' %}
+
+<script>
+  let activeSeconds = 0;
+  setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      activeSeconds += 10;
+      if (activeSeconds >= 30) {
+        fetch('/settings/ping-time/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+          },
+          body: JSON.stringify({seconds: activeSeconds})
+        }).catch(err => console.log('Screen time ping failed'));
+        activeSeconds = 0;
+      }
+    }
+  }, 10000);
 </script>
 </body>
 </html>
-
-

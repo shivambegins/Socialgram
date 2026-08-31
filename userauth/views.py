@@ -1,5 +1,5 @@
 from django.contrib.auth.models import AbstractUser
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
@@ -10,7 +10,7 @@ from django.views.decorators.http import require_POST
 from django.conf import settings
 from django.core.cache import cache
 import requests
-from .models import Profile, Post, Connection, Like, Comment, Notification, Message, Share, PostView, MessageGroup, GroupMember, GroupMessage
+from .models import Profile, Post, Connection, Like, Comment, Notification, Message, Share, PostView, MessageGroup, GroupMember, GroupMessage, BlockedUser, OTPToken, DailyScreenTime
 # Create your views here.
 def signup(request):
     if request.method == 'POST':
@@ -588,3 +588,176 @@ def profile(request, username):
         'posts': posts,
         'connected_ids': connected_ids
     })
+
+@login_required
+@require_POST
+def merge_call(request):
+    """Create a group call by merging the current 1-on-1 call with a new caller."""
+    import json
+    from django.http import JsonResponse
+    
+    current_partner_id = request.POST.get('current_partner_id')
+    new_caller_id = request.POST.get('new_caller_id')
+    
+    if not current_partner_id or not new_caller_id:
+        return JsonResponse({'error': 'Missing parameters'}, status=400)
+    
+    current_partner = get_object_or_404(User, id=current_partner_id)
+    new_caller = get_object_or_404(User, id=new_caller_id)
+    
+    # Create a new group for the merged call
+    grp = MessageGroup.objects.create(
+        name=f"Call: {request.user.username}, {current_partner.username}, {new_caller.username}",
+        admin=request.user
+    )
+    GroupMember.objects.create(group=grp, user=request.user)
+    GroupMember.objects.create(group=grp, user=current_partner)
+    GroupMember.objects.create(group=grp, user=new_caller)
+    
+    return JsonResponse({
+        'group_id': str(grp.id),
+        'group_url': f'/messages/group/{grp.id}/?auto_join=audio'
+    })
+
+
+
+
+
+import random
+from django.core.mail import send_mail
+from django.utils import timezone
+from datetime import timedelta
+
+@login_required
+def user_settings(request):
+    user = request.user
+    profile = user.profile
+    
+    total_posts = Post.objects.filter(user=user).count()
+    total_likes_given = Like.objects.filter(user=user).count()
+    total_comments_made = Comment.objects.filter(user=user).count()
+    account_age = (timezone.now().date() - user.date_joined.date()).days
+    
+    # Calculate Screen Time
+    from django.db.models import Sum, Avg
+    from datetime import timedelta
+    import json
+    today = timezone.now().date()
+    
+    today_record = DailyScreenTime.objects.filter(user=user, date=today).first()
+    today_seconds = today_record.time_seconds if today_record else 0
+    today_str = f"{today_seconds // 3600}h {(today_seconds % 3600) // 60}m"
+    
+    agg = DailyScreenTime.objects.filter(user=user).aggregate(Avg('time_seconds'))
+    avg_seconds = agg['time_seconds__avg'] or 0
+    avg_str = f"{int(avg_seconds) // 3600}h {(int(avg_seconds) % 3600) // 60}m"
+    
+    # Last 7 days data for Graph
+    labels = []
+    data = []
+    for i in range(6, -1, -1):
+        day = today - timedelta(days=i)
+        record = DailyScreenTime.objects.filter(user=user, date=day).first()
+        secs = record.time_seconds if record else 0
+        labels.append(day.strftime('%a')) # 'Mon', 'Tue'
+        data.append(round(secs / 60)) # In minutes for the graph
+        
+    chart_data = json.dumps({'labels': labels, 'data': data})
+    
+    liked_posts = Post.objects.filter(like__user=user).order_by('-like__created_at')
+    user_comments = Comment.objects.filter(user=user).select_related('post').order_by('-created_at')
+    blocked_users = BlockedUser.objects.filter(blocker=user).select_related('blocked__profile')
+    
+    context = {
+        'profile': profile,
+        'total_posts': total_posts,
+        'total_likes_given': total_likes_given,
+        'total_comments_made': total_comments_made,
+        'account_age': account_age,
+        'today_screen_time': today_str,
+        'avg_screen_time': avg_str,
+        'chart_data': chart_data,
+        'liked_posts': liked_posts,
+        'user_comments': user_comments,
+        'blocked_users': blocked_users,
+    }
+    return render(request, 'settings.html', context)
+
+@login_required
+def block_user(request, username):
+    target_user = get_object_or_404(User, username=username)
+    if target_user != request.user:
+        BlockedUser.objects.get_or_create(blocker=request.user, blocked=target_user)
+        Connection.objects.filter(from_user=request.user, to_user=target_user).delete()
+        Connection.objects.filter(from_user=target_user, to_user=request.user).delete()
+    return redirect('profile', username=username)
+
+@login_required
+def unblock_user(request, username):
+    target_user = get_object_or_404(User, username=username)
+    BlockedUser.objects.filter(blocker=request.user, blocked=target_user).delete()
+    if request.META.get('HTTP_REFERER') and 'settings' in request.META.get('HTTP_REFERER'):
+        return redirect('user_settings')
+    return redirect('profile', username=username)
+
+@login_required
+def request_account_deletion(request):
+    if request.method == 'POST':
+        user = request.user
+        otp_code = f"{random.randint(100000, 999999)}"
+        
+        OTPToken, DailyScreenTime.objects.filter(user=user, purpose='delete_account').delete()
+        OTPToken, DailyScreenTime.objects.create(user=user, token=otp_code, purpose='delete_account')
+        
+        try:
+            send_mail(
+                'Delete Account OTP - Socialgram',
+                f'Your One-Time Password to delete your account is: {otp_code}\n\nThis code will expire in 10 minutes.\nIf you did not request this, please ignore this email and secure your account.',
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+                fail_silently=False,
+            )
+            return redirect('verify_account_deletion')
+        except Exception as e:
+            return redirect('user_settings')
+    return redirect('user_settings')
+
+@login_required
+def verify_account_deletion(request):
+    if request.method == 'POST':
+        otp_input = request.POST.get('otp', '').strip()
+        user = request.user
+        
+        token_obj = OTPToken, DailyScreenTime.objects.filter(user=user, purpose='delete_account').order_by('-created_at').first()
+        if not token_obj:
+            return redirect('user_settings')
+            
+        if timezone.now() > token_obj.created_at + timedelta(minutes=10):
+            token_obj.delete()
+            return redirect('user_settings')
+            
+        if token_obj.token == otp_input:
+            user.delete()
+            return redirect('login')
+            
+    return render(request, 'userauth/delete_account_verify.html')
+
+
+@login_required
+@require_POST
+def ping_screen_time(request):
+    try:
+        import json
+        data = json.loads(request.body)
+        seconds = int(data.get('seconds', 0))
+        if 0 < seconds <= 120:
+            today = timezone.now().date()
+            record, _ = DailyScreenTime.objects.get_or_create(user=request.user, date=today)
+            record.time_seconds += seconds
+            record.save()
+            return JsonResponse({'status': 'ok'})
+    except:
+        pass
+    return JsonResponse({'status': 'error'}, status=400)
+
+

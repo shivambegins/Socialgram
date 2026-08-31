@@ -147,3 +147,37 @@ class GroupMessage(models.Model):
 
     class Meta:
         ordering = ['created_at']
+
+class BlockedUser(models.Model):
+    blocker = models.ForeignKey(User, related_name='blocking', on_delete=models.CASCADE)
+    blocked = models.ForeignKey(User, related_name='blocked_by', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('blocker', 'blocked')
+
+    def __str__(self):
+        return f'{self.blocker.username} blocks {self.blocked.username}'
+
+class OTPToken(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    token = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    purpose = models.CharField(max_length=50, default='delete_account')
+
+    def __str__(self):
+        return f'{self.user.username} - {self.token}'
+
+
+class DailyScreenTime(models.Model):
+    from django.utils import timezone
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    date = models.DateField(default=timezone.now)
+    time_seconds = models.IntegerField(default=0)
+    
+    class Meta:
+        unique_together = ('user', 'date')
+
+    def __str__(self):
+        return f'{self.user.username} - {self.date} - {self.time_seconds}s'
+

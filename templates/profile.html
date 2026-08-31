@@ -282,8 +282,30 @@
     }
   }
 </script>
+{% include 'call_toast.html' %}
+
+<script>
+  let activeSeconds = 0;
+  setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      activeSeconds += 10;
+      if (activeSeconds >= 30) {
+        fetch('/settings/ping-time/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+          },
+          body: JSON.stringify({seconds: activeSeconds})
+        }).catch(err => console.log('Screen time ping failed'));
+        activeSeconds = 0;
+      }
+    }
+  }, 10000);
+</script>
 </body>
 </html>
+
 
 
 

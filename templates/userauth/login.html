@@ -247,7 +247,7 @@
   <div class="stage">
     <form class="card" id="loginForm" method="POST" action="">
       {% csrf_token %}
-      <div class="logo">Connectly</div>
+      <div class="logo">Socialgram</div>
 
       {% if error %}
       <p class="error">{{ error }}</p>
@@ -262,7 +262,7 @@
         </div>
       </div>
 
-      <div class="forgot"><a href="#">Forgot password?</a></div>
+      <div class="forgot"><a href="{% url 'password_reset' %}">Forgot password?</a></div>
 
       <button type="submit" class="submit" id="submitBtn">Log in</button>
 

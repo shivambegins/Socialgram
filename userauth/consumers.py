@@ -70,6 +70,17 @@ class CallConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
+        
+        if data.get('type') == 'incoming-call':
+            await self.channel_layer.group_send(f'user_notifications_{self.partner_id}', {
+                'type': 'send_notification',
+                'notification_type': 'incoming_call',
+                'caller_name': self.me.username,
+                'caller_id': self.me.id,
+                'is_video': data.get('callType') == 'video',
+                'group_id': None
+            })
+
         # Forward any WebRTC signal (offer, answer, ice-candidate, call-ended, call-rejected)
         await self.channel_layer.group_send(self.room, {
             'type': 'call_signal',
@@ -164,6 +175,20 @@ class GroupCallConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         data = json.loads(text_data)
         
+        if data.get('type') == 'peer-joined':
+            grp = await database_sync_to_async(MessageGroup.objects.get)(id=self.group_id)
+            members = await database_sync_to_async(list)(grp.members.all())
+            for member in members:
+                if member.user_id != self.me.id:
+                    await self.channel_layer.group_send(f'user_notifications_{member.user_id}', {
+                        'type': 'send_notification',
+                        'notification_type': 'incoming_call',
+                        'caller_name': f'{self.me.username} (Group: {grp.name})',
+                        'caller_id': None,
+                        'is_video': False,
+                        'group_id': str(self.group_id)
+                    })
+
         # Append sender_id so receivers know who the signal is from
         data['sender_id'] = self.me.id
         
@@ -186,3 +211,34 @@ class GroupCallConsumer(AsyncWebsocketConsumer):
             return
             
         await self.send(text_data=json.dumps(event['signal']))
+
+class NotificationConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        if self.scope['user'].is_anonymous:
+            await self.close()
+            return
+        self.me = self.scope['user']
+        self.room = f"user_notifications_{self.me.id}"
+        await self.channel_layer.group_add(self.room, self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, code):
+        if not self.scope['user'].is_anonymous:
+            await self.channel_layer.group_discard(self.room, self.channel_name)
+
+    async def receive(self, text_data):
+        pass
+
+    async def send_notification(self, event):
+        # Send only the relevant data to the client (exclude channel layer's 'type' key)
+        payload = {
+            'notification_type': event.get('notification_type'),
+            'caller_name': event.get('caller_name'),
+            'caller_id': event.get('caller_id'),
+            'is_video': event.get('is_video'),
+            'group_id': event.get('group_id'),
+        }
+        await self.send(text_data=json.dumps(payload))
+
+
+
