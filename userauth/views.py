@@ -10,7 +10,7 @@ from django.views.decorators.http import require_POST
 from django.conf import settings
 from django.core.cache import cache
 import requests
-from .models import Profile, Post, Connection, Like, Comment, Notification, Message, Share, PostView, MessageGroup, GroupMember, GroupMessage, BlockedUser, OTPToken, DailyScreenTime, MemorableMoment
+from .models import Profile, Post, Connection, Like, Comment, Notification, Message, Share, PostView, MessageGroup, GroupMember, GroupMessage, BlockedUser, OTPToken, DailyScreenTime, MemorableMoment, MeetingTranscript
 # Create your views here.
 def signup(request):
     if request.method == 'POST':
@@ -810,3 +810,79 @@ def edit_profile(request):
         'profile': profile,
         'moments': moments
     })
+
+
+@login_required
+@require_POST
+def save_meeting_transcript(request):
+    import json
+    from django.conf import settings as django_settings
+    
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        data = request.POST
+    
+    raw_transcript = data.get('transcript', '')
+    partner_name = data.get('partner_name', 'Unknown')
+    duration = int(data.get('duration', 0))
+    
+    if not raw_transcript.strip():
+        return JsonResponse({'error': 'Empty transcript'}, status=400)
+    
+    # Call Gemini API for AI summary
+    ai_summary = ''
+    try:
+        from google import genai
+        client = genai.Client(api_key=django_settings.GEMINI_API_KEY)
+        
+        prompt = f"""You are a professional meeting assistant. Analyze this meeting transcript and provide a clear, structured summary.
+
+Meeting between: {request.user.username} and {partner_name}
+Duration: {duration // 60} minutes {duration % 60} seconds
+
+Transcript:
+{raw_transcript}
+
+Please provide:
+1. **Meeting Summary** - A brief overview of what was discussed
+2. **Key Points** - Bullet points of the main topics covered
+3. **Action Items** - Any tasks or follow-ups mentioned
+4. **Decisions Made** - Any decisions that were agreed upon
+
+Keep the summary concise and professional."""
+        
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=prompt
+        )
+        ai_summary = response.text
+    except Exception as e:
+        ai_summary = f'AI summary could not be generated: {str(e)}'
+    
+    # Save to database
+    meeting = MeetingTranscript.objects.create(
+        user=request.user,
+        partner_name=partner_name,
+        raw_transcript=raw_transcript,
+        ai_summary=ai_summary,
+        duration_seconds=duration
+    )
+    
+    return JsonResponse({
+        'status': 'success',
+        'meeting_id': meeting.id,
+        'summary': ai_summary
+    })
+
+
+@login_required
+def meetings_dashboard(request):
+    meetings = MeetingTranscript.objects.filter(user=request.user).order_by('-created_at')
+    return render(request, 'meetings.html', {'meetings': meetings})
+
+
+@login_required
+def meeting_detail(request, meeting_id):
+    meeting = get_object_or_404(MeetingTranscript, id=meeting_id, user=request.user)
+    return render(request, 'meeting_detail.html', {'meeting': meeting})

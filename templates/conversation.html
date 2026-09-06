@@ -495,6 +495,154 @@ window.addEventListener('DOMContentLoaded', async () => {
       }
     }
   }, 10000);
-</script>
+
+
+  // ===== MEETING MODE =====
+  let meetingMode = false;
+  let meetingRecognition = null;
+  let meetingTranscriptText = '';
+  let meetingStartTime = null;
+  let meetingTimerInterval = null;
+
+  function toggleMeetingMode() {
+    meetingMode = !meetingMode;
+    const btn = document.getElementById('meetingBtn');
+    const dot = document.getElementById('meetingDot');
+    const overlay = document.getElementById('transcriptOverlay');
+    
+    if (meetingMode) {
+      btn.style.background = 'rgba(34,197,94,0.4)';
+      dot.style.display = 'block';
+      overlay.style.display = 'block';
+      meetingTranscriptText = '';
+      document.getElementById('liveTranscript').innerHTML = '';
+      document.getElementById('interimText').textContent = '';
+      meetingStartTime = Date.now();
+      startMeetingTimer();
+      startSpeechRecognition();
+    } else {
+      btn.style.background = 'rgba(255,255,255,0.15)';
+      dot.style.display = 'none';
+      overlay.style.display = 'none';
+      stopMeetingTimer();
+      stopSpeechRecognition();
+    }
+  }
+
+  function startMeetingTimer() {
+    const timerEl = document.getElementById('meetingTimer');
+    meetingTimerInterval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - meetingStartTime) / 1000);
+      const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+      const secs = String(elapsed % 60).padStart(2, '0');
+      timerEl.textContent = mins + ':' + secs;
+    }, 1000);
+  }
+
+  function stopMeetingTimer() {
+    if (meetingTimerInterval) {
+      clearInterval(meetingTimerInterval);
+      meetingTimerInterval = null;
+    }
+  }
+
+  function startSpeechRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Your browser does not support Speech Recognition. Please use Chrome.');
+      meetingMode = false;
+      return;
+    }
+    
+    meetingRecognition = new SpeechRecognition();
+    meetingRecognition.continuous = true;
+    meetingRecognition.interimResults = true;
+    meetingRecognition.lang = 'en-US';
+    
+    meetingRecognition.onresult = function(event) {
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          meetingTranscriptText += transcript + ' ';
+          const liveEl = document.getElementById('liveTranscript');
+          liveEl.innerHTML += '<div style="margin-bottom:4px;">' + transcript + '</div>';
+          liveEl.scrollTop = liveEl.scrollHeight;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+      document.getElementById('interimText').textContent = interimTranscript;
+    };
+    
+    meetingRecognition.onerror = function(event) {
+      console.log('Speech recognition error:', event.error);
+      if (event.error === 'no-speech' || event.error === 'aborted') {
+        // Restart silently
+        if (meetingMode) {
+          try { meetingRecognition.start(); } catch(e) {}
+        }
+      }
+    };
+    
+    meetingRecognition.onend = function() {
+      // Auto-restart if meeting mode is still on
+      if (meetingMode) {
+        try { meetingRecognition.start(); } catch(e) {}
+      }
+    };
+    
+    try { meetingRecognition.start(); } catch(e) { console.log('Failed to start speech recognition:', e); }
+  }
+
+  function stopSpeechRecognition() {
+    if (meetingRecognition) {
+      meetingMode = false; // Prevent auto-restart
+      try { meetingRecognition.stop(); } catch(e) {}
+      meetingRecognition = null;
+    }
+  }
+
+  // Override hangUp to save transcript
+  const _originalHangUp = hangUp;
+  hangUp = function() {
+    if (meetingMode && meetingTranscriptText.trim()) {
+      const duration = Math.floor((Date.now() - meetingStartTime) / 1000);
+      stopSpeechRecognition();
+      stopMeetingTimer();
+      
+      // Send transcript to server
+      const csrfToken = document.cookie.split(';').find(c => c.trim().startsWith('csrftoken='))?.split('=')[1];
+      fetch('/meetings/save/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+          transcript: meetingTranscriptText,
+          partner_name: PARTNER,
+          duration: duration
+        })
+      }).then(r => r.json()).then(data => {
+        if (data.status === 'success') {
+          // Show success toast
+          const toast = document.createElement('div');
+          toast.innerHTML = '✅ Meeting summary saved! <a href="/meetings/' + data.meeting_id + '/" style="color:#4FE3C1;text-decoration:underline;">View Summary</a>';
+          toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#121826;border:1px solid #4FE3C1;color:#E7ECF3;padding:16px 24px;border-radius:12px;font-size:14px;z-index:99999;box-shadow:0 10px 25px rgba(0,0,0,0.5);';
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 8000);
+        }
+      }).catch(e => console.log('Failed to save meeting:', e));
+      
+      meetingMode = false;
+      document.getElementById('meetingBtn').style.background = 'rgba(255,255,255,0.15)';
+      document.getElementById('meetingDot').style.display = 'none';
+      document.getElementById('transcriptOverlay').style.display = 'none';
+    }
+    _originalHangUp();
+  };
+
+  </script>
 </body>
 </html>

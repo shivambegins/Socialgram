@@ -1,0 +1,61 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meeting with {{ meeting.partner_name }} | Socialgram</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --ink:#0B0F1A; --panel:#121826; --panel-2:#171F30; --line:#232C40;
+      --cyan:#4FE3C1; --cyan-dim:#2C6E63; --coral:#FF6B5B;
+      --text:#E7ECF3; --muted:#8B93A7; --faint:#5A6478;
+      --display:'Space Grotesk',sans-serif; --body:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--ink);color:var(--text);font-family:var(--body);line-height:1.7;}
+    a{color:inherit;text-decoration:none;}
+
+    .container{max-width:800px;margin:0 auto;padding:24px 32px;}
+    .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px;flex-wrap:wrap;gap:12px;}
+    .header h1{font-family:var(--display);font-size:24px;color:var(--cyan);}
+    .btn{padding:10px 20px;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;text-decoration:none;display:inline-block;border:none;}
+    .btn-ghost{background:none;color:var(--muted);border:1px solid var(--line);}
+    .btn-ghost:hover{color:var(--text);border-color:var(--faint);}
+
+    .meta-bar{display:flex;gap:20px;margin-bottom:24px;flex-wrap:wrap;}
+    .meta-bar span{font-size:14px;color:var(--muted);font-family:var(--mono);}
+
+    .section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:24px;}
+    .section h2{font-family:var(--display);font-size:20px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line);color:var(--cyan);}
+    .section .content{font-size:15px;color:var(--text);white-space:pre-wrap;line-height:1.8;}
+    .section .content strong{color:var(--cyan);}
+
+    .transcript-box{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:20px;font-family:var(--mono);font-size:13px;color:var(--faint);white-space:pre-wrap;max-height:400px;overflow-y:auto;line-height:1.8;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🤖 Meeting with {{ meeting.partner_name }}</h1>
+      <a href="{% url 'meetings_dashboard' %}" class="btn btn-ghost">🔙 All Meetings</a>
+    </div>
+
+    <div class="meta-bar">
+      <span>📅 {{ meeting.created_at|date:"F d, Y — h:i A" }}</span>
+      <span>⏱️ {% widthratio meeting.duration_seconds 60 1 %} min</span>
+    </div>
+
+    <div class="section">
+      <h2>✨ AI Summary</h2>
+      <div class="content">{{ meeting.ai_summary|linebreaksbr }}</div>
+    </div>
+
+    <div class="section">
+      <h2>📝 Full Transcript</h2>
+      <div class="transcript-box">{{ meeting.raw_transcript }}</div>
+    </div>
+  </div>
+</body>
+</html>
