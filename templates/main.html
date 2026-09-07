@@ -101,6 +101,22 @@
   .liked-by{font-size:12px; color:var(--faint); margin-top:8px; font-family:var(--mono);}
   .liked-by span{text-decoration:underline dotted var(--faint); cursor:default;}
 
+  /* === 3D Scroll Effect === */
+  .feed {
+    perspective: 1400px;
+    perspective-origin: 50% 50%;
+  }
+  .feed .panel {
+    will-change: transform, opacity;
+    transform-style: preserve-3d;
+    transition: transform 0.08s cubic-bezier(0.2,0.8,0.2,1), opacity 0.15s ease, box-shadow 0.15s ease;
+    transform-origin: center center;
+  }
+  .feed .panel.scroll-active {
+    box-shadow: 0 0 0 1px rgba(79,227,193,0.15), 0 24px 60px rgba(0,0,0,0.5);
+  }
+
+
   .side-right .panel + .panel{margin-top:16px;}
   .panel h3.title{font-family:var(--display); font-size:14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;}
   .panel h3.title span{font-family:var(--mono); font-size:11px; color:var(--faint); font-weight:400;}
@@ -472,6 +488,58 @@
     }
   }, 10000);
 </script>
+
+<script>
+(function() {
+  function run3DScroll() {
+    const cards = document.querySelectorAll('.feed .panel');
+    if (!cards.length) return;
+    const winH = window.innerHeight;
+    const winCenter = winH / 2;
+
+    cards.forEach(card => {
+      const rect = card.getBoundingClientRect();
+      const cardCenter = rect.top + rect.height / 2;
+      // offset: -1 (above center) to +1 (below center)
+      let offset = (cardCenter - winCenter) / winCenter;
+      offset = Math.max(-1.5, Math.min(1.5, offset));
+
+      const rotateX  = offset * 22;               // tilt: max 22deg
+      const scale    = 1 - Math.abs(offset) * 0.08; // shrink: max 8%
+      const tz       = Math.abs(offset) * -80;     // push back: max 80px
+      const opacity  = 1 - Math.abs(offset) * 0.45; // fade: min ~0.33
+
+      card.style.opacity   = Math.max(0.25, opacity);
+      card.style.transform = 	ranslateZ(px) rotateX(deg) scale();
+
+      // Highlight the card closest to center
+      if (Math.abs(offset) < 0.25) {
+        card.classList.add('scroll-active');
+      } else {
+        card.classList.remove('scroll-active');
+      }
+    });
+  }
+
+  // Run on scroll (throttled with rAF)
+  let ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      window.requestAnimationFrame(function() {
+        run3DScroll();
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }, { passive: true });
+
+  // Run once on load
+  run3DScroll();
+  // Re-run after images load (cards may resize)
+  window.addEventListener('load', run3DScroll);
+})();
+</script>
+
 </body>
 </html>
 
