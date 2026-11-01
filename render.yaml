@@ -26,8 +26,8 @@ services:
       - key: AWS_SECRET_ACCESS_KEY
         sync: false   # Paste in Render dashboard
       - key: AWS_STORAGE_BUCKET_NAME
-        sync: false   # e.g. socialgram-media
+        value: "socialgram-media"
       - key: AWS_S3_REGION_NAME
-        value: "ap-south-1"   # Change to your bucket region
+        value: "ap-southeast-2"
       - key: PYTHON_VERSION
         value: "3.11.9"
