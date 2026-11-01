@@ -143,8 +143,10 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'),)
 
-# Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
+# Email Configuration (Django 6.1 MAILERS)
+_EMAIL_USER = os.environ.get('EMAIL_HOST_USER', 'shivam.updates07@gmail.com')
+_EMAIL_PASS = os.environ.get('EMAIL_HOST_PASSWORD', 'kbzo ksfh urxg lwkm')
+DEFAULT_FROM_EMAIL = 'Socialgram <' + _EMAIL_USER + '>'
 
 MAILERS = {
     'default': {
@@ -153,13 +155,13 @@ MAILERS = {
             'host': 'smtp.gmail.com',
             'port': 587,
             'use_tls': True,
-            'username': os.environ.get('EMAIL_HOST_USER', ''),
-            'password': os.environ.get('EMAIL_HOST_PASSWORD', ''),
+            'username': _EMAIL_USER,
+            'password': _EMAIL_PASS,
+            'timeout': 15,
         }
     },
 }
 
-# ── Media files: local in dev, AWS S3 in production ──────────────────────────
 AWS_ACCESS_KEY_ID     = os.environ.get('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')

@@ -57,6 +57,16 @@ def upload(request):
 
 @login_required
 def home(request):
+    # Auto-seed welcome posts if feed is empty so users have posts to scroll & explore
+    if not Post.objects.exists():
+        welcome_items = [
+            "🚀 Welcome to Socialgram! Try scrolling up and down on this feed to experience our dynamic 3D scroll physics in action.",
+            "🎥 Connect with friends via WebRTC video calls, and enable AI Meeting Mode to automatically generate meeting transcripts & summaries powered by Google Gemini!",
+            "✨ Upload photos, share memorable moments, track your daily screen time, and chat in real-time with WebSockets."
+        ]
+        for cap in welcome_items:
+            Post.objects.create(user=request.user, caption=cap)
+
     posts = Post.objects.select_related('user').prefetch_related(
         'like_set__user', 'comments__user', 'shares'
     ).order_by('-created_AT')

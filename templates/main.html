@@ -102,23 +102,27 @@
   .liked-by span{text-decoration:underline dotted var(--faint); cursor:default;}
 
   /* === 3D Scroll Effect === */
-  /* Allow 3D children to overflow the feed wrapper visibly */
-  .feed-col { overflow: visible !important; }
+  .feed-col { 
+    overflow: visible !important; 
+    perspective: 1400px;
+    perspective-origin: 50% 50%;
+  }
 
   .feed {
-    perspective: 1200px;
+    perspective: 1400px;
     perspective-origin: 50% 50%;
     overflow: visible !important;
   }
-  .feed .panel {
-    will-change: transform, opacity;
+  .feed .panel, .feed-col .composer {
+    will-change: transform, opacity, box-shadow;
     transform-style: preserve-3d;
-    transition: transform 0.1s cubic-bezier(0.2,0.8,0.2,1), opacity 0.12s ease, box-shadow 0.15s ease;
     transform-origin: center center;
     position: relative;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
   }
-  .feed .panel.scroll-active {
-    box-shadow: 0 0 0 1px rgba(79,227,193,0.2), 0 24px 60px rgba(0,0,0,0.6) !important;
+  .feed .panel.scroll-active, .feed-col .composer.scroll-active {
+    box-shadow: 0 0 0 1.5px rgba(79,227,193,0.45), 0 20px 50px rgba(0,0,0,0.7), 0 0 35px rgba(79,227,193,0.25) !important;
+    border-color: rgba(79,227,193,0.6) !important;
   }
 
 
@@ -486,18 +490,10 @@
             'Content-Type': 'application/json',
             'X-CSRFToken': '{{ csrf_token }}'
           },
-          body: JSON.stringify({seconds: activeSeconds})
-        });
-        activeSeconds = 0;
-      }
-    }
-  }, 10000);
-</script>
-
-<script>
+          body: JS<script>
 (function() {
   function run3DScroll() {
-    const cards = document.querySelectorAll('.feed .panel');
+    const cards = document.querySelectorAll('.feed-col .panel');
     if (!cards.length) return;
     const winH = window.innerHeight;
     const winCenter = winH / 2;
@@ -505,20 +501,22 @@
     cards.forEach(card => {
       const rect = card.getBoundingClientRect();
       const cardCenter = rect.top + rect.height / 2;
-      // offset: -1 (above center) to +1 (below center)
-      let offset = (cardCenter - winCenter) / winCenter;
-      offset = Math.max(-1.5, Math.min(1.5, offset));
+      
+      // Calculate normalized offset from viewport center
+      let offset = (cardCenter - winCenter) / (winH * 0.45);
+      offset = Math.max(-1.4, Math.min(1.4, offset));
 
-      const rotateX  = offset * 22;               // tilt: max 22deg
-      const scale    = 1 - Math.abs(offset) * 0.08; // shrink: max 8%
-      const tz       = Math.abs(offset) * -80;     // push back: max 80px
-      const opacity  = 1 - Math.abs(offset) * 0.45; // fade: min ~0.33
+      // Dynamic 3D tilt, scale, and pushback
+      const rotateX = offset * -22;                 // tilt angle
+      const scale   = 1 - Math.abs(offset) * 0.07;  // shrink edges
+      const tz      = Math.abs(offset) * -110;      // depth push
+      const opacity = 1 - Math.abs(offset) * 0.35;  // fade edges
 
-      card.style.opacity   = Math.max(0.25, opacity);
-      card.style.transform = 'perspective(1200px) translateZ(' + tz + 'px) rotateX(' + rotateX + 'deg) scale(' + scale + ')';
+      card.style.opacity   = Math.max(0.35, opacity);
+      card.style.transform = 'perspective(1200px) translateZ(' + tz.toFixed(1) + 'px) rotateX(' + rotateX.toFixed(1) + 'deg) scale(' + scale.toFixed(3) + ')';
 
       // Highlight the card closest to center
-      if (Math.abs(offset) < 0.25) {
+      if (Math.abs(offset) < 0.28) {
         card.classList.add('scroll-active');
       } else {
         card.classList.remove('scroll-active');
@@ -526,9 +524,8 @@
     });
   }
 
-  // Run on scroll (throttled with rAF)
   let ticking = false;
-  window.addEventListener('scroll', function() {
+  function onScroll() {
     if (!ticking) {
       window.requestAnimationFrame(function() {
         run3DScroll();
@@ -536,23 +533,20 @@
       });
       ticking = true;
     }
-  }, { passive: true });
+  }
 
-  // Run once on load
+  ['scroll', 'resize', 'touchmove', 'wheel'].forEach(function(evt) {
+    window.addEventListener(evt, onScroll, { passive: true });
+    document.addEventListener(evt, onScroll, { passive: true });
+  });
+
   run3DScroll();
-  // Re-run after images load (cards may resize)
   window.addEventListener('load', run3DScroll);
+  document.addEventListener('DOMContentLoaded', run3DScroll);
+  setTimeout(run3DScroll, 300);
+  setTimeout(run3DScroll, 1000);
 })();
 </script>
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
