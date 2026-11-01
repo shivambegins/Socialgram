@@ -102,18 +102,23 @@
   .liked-by span{text-decoration:underline dotted var(--faint); cursor:default;}
 
   /* === 3D Scroll Effect === */
+  /* Allow 3D children to overflow the feed wrapper visibly */
+  .feed-col { overflow: visible !important; }
+
   .feed {
-    perspective: 1400px;
+    perspective: 1200px;
     perspective-origin: 50% 50%;
+    overflow: visible !important;
   }
   .feed .panel {
     will-change: transform, opacity;
     transform-style: preserve-3d;
-    transition: transform 0.08s cubic-bezier(0.2,0.8,0.2,1), opacity 0.15s ease, box-shadow 0.15s ease;
+    transition: transform 0.1s cubic-bezier(0.2,0.8,0.2,1), opacity 0.12s ease, box-shadow 0.15s ease;
     transform-origin: center center;
+    position: relative;
   }
   .feed .panel.scroll-active {
-    box-shadow: 0 0 0 1px rgba(79,227,193,0.15), 0 24px 60px rgba(0,0,0,0.5);
+    box-shadow: 0 0 0 1px rgba(79,227,193,0.2), 0 24px 60px rgba(0,0,0,0.6) !important;
   }
 
 
@@ -510,7 +515,7 @@
       const opacity  = 1 - Math.abs(offset) * 0.45; // fade: min ~0.33
 
       card.style.opacity   = Math.max(0.25, opacity);
-      card.style.transform = 	ranslateZ(px) rotateX(deg) scale();
+      card.style.transform = 'perspective(1200px) translateZ(' + tz + 'px) rotateX(' + rotateX + 'deg) scale(' + scale + ')';
 
       // Highlight the card closest to center
       if (Math.abs(offset) < 0.25) {
